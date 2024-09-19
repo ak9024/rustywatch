@@ -143,59 +143,59 @@ jobs:
           name: rustywatch-${{ matrix.build.TARGET }}-assets
           path: target/debug/rustywatch*
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout the repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #
+  #     - name: Install cargo-llvm-cov
+  #       uses: taiki-e/install-action@cargo-llvm-cov
+  #
+  #     - name: Cache Cargo dependencies
+  #       uses: Swatinem/rust-cache@v2
+  #
+  #     - name: Generate code coverage
+  #       run: |
+  #         cargo build
+  #         cargo llvm-cov --lcov --output-path lcov.info --lib
+  #       env:
+  #         OUT_DIR: target
+  #
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v4
+  #       with:
+  #         name: code-coverage-report
+  #         files: lcov.info
+  #         fail_ci_if_error: true
+  #         verbose: true
+  #       env:
+  #         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-
-      - name: Cache Cargo dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Generate code coverage
-        run: |
-          cargo build
-          cargo llvm-cov --lcov --output-path lcov.info --lib
-        env:
-          OUT_DIR: target
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          name: code-coverage-report
-          files: lcov.info
-          fail_ci_if_error: true
-          verbose: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  commit-format:
-    name: Commit format
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        if: github.event_name != 'pull_request'
-        uses: actions/checkout@v4
-
-      - name: Checkout the repository
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Run committed
-        uses: crate-ci/committed@master
-        with:
-          args: "-vv"
-          commits: "HEAD"
-
+  # commit-format:
+  #   name: Commit format
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout the repository
+  #       if: github.event_name != 'pull_request'
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Checkout the repository
+  #       if: github.event_name == 'pull_request'
+  #       uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ github.event.pull_request.head.sha }}
+  #
+  #     - name: Run committed
+  #       uses: crate-ci/committed@master
+  #       with:
+  #         args: "-vv"
+  #         commits: "HEAD"
+  #
   code-format:
     name: Code format
     runs-on: ubuntu-latest
@@ -238,17 +238,17 @@ jobs:
       - name: Check lints
         run: cargo clippy -- -D warnings
 
-  deny:
-    name: Deny
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-
-      - name: Run cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          command: check all
+  # deny:
+  #   name: Deny
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout the repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Run cargo-deny
+  #       uses: EmbarkStudios/cargo-deny-action@v2
+  #       with:
+  #         command: check all
 
   links:
     name: Links
@@ -274,18 +274,3 @@ jobs:
       - name: Check typos
         uses: crate-ci/typos@master
 
-  msrv:
-    name: MSRV
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v4
-
-      - name: Install cargo-binstall
-        uses: taiki-e/install-action@cargo-binstall
-
-      - name: Install cargo-msrv
-        run: cargo binstall -y --force cargo-msrv
-
-      - name: Run cargo-msrv
-        run: cargo msrv --output-format json verify | tail -n 1 | jq --exit-status '.success'

@@ -5,7 +5,7 @@ use std::{env, process};
 
 #[tokio::main]
 async fn main() {
-    setup_loging();
+    setup_logging();
     let args = Args::parse();
     match run(args) {
         Ok(_) => process::exit(0),
@@ -16,7 +16,7 @@ async fn main() {
     }
 }
 
-fn setup_loging() {
+fn setup_logging() {
     if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "info");
     }
