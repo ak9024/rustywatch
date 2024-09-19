@@ -1,6 +1,6 @@
 [package]
 name = "rustywatch"
-description = "A file watcher CLI built with Rust"
+description = "The High-Performance File Monitoring Tool for DevOps Automation"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
