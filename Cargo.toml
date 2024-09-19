@@ -1,0 +1,9 @@
+[package]
+name = "rustywatch"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.17", features = ["derive"] }
+notify = "6.1.1"
+tokio = { version = "1.40.0", features = ["full"] }
