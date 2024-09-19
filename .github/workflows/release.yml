@@ -2,59 +2,290 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'  # This triggers the workflow on tag pushes like v1.0.0
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  release:
-    name: Release Build
-    runs-on: ubuntu-latest
-
+  build:
+    name: Build on ${{ matrix.build.OS }} (${{ matrix.build.TARGET }})
+    runs-on: ${{ matrix.build.OS }}
     strategy:
+      fail-fast: false
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]  # Target multiple platforms
-
+        build:
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: x86_64-unknown-linux-gnu,
+              ALL_FEATURES: true,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: x86_64-unknown-linux-musl,
+              ALL_FEATURES: true,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: aarch64-unknown-linux-gnu,
+              ALL_FEATURES: true,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: riscv64gc-unknown-linux-gnu,
+              ALL_FEATURES: true,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: i686-unknown-linux-gnu,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: i686-unknown-linux-musl,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: aarch64-unknown-linux-musl,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: armv5te-unknown-linux-gnueabi,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: armv7-unknown-linux-gnueabihf,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: arm-unknown-linux-gnueabi,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: arm-unknown-linux-gnueabihf,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: ubuntu-22.04,
+              TOOLCHAIN: stable,
+              TARGET: powerpc64le-unknown-linux-gnu,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: windows-2022,
+              TOOLCHAIN: stable,
+              TARGET: x86_64-pc-windows-msvc,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: macos-14,
+              TOOLCHAIN: stable,
+              TARGET: x86_64-apple-darwin,
+              ALL_FEATURES: false,
+            }
+          - {
+              OS: macos-14,
+              TOOLCHAIN: stable,
+              TARGET: aarch64-apple-darwin,
+              ALL_FEATURES: false,
+            }
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout the repository
+        uses: actions/checkout@v4
 
-      # Step 2: Set up Rust environment
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install dependencies
+        if: matrix.build.TARGET == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            --no-install-recommends \
+            --allow-unauthenticated \
+              musl-tools
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: stable
-          target: ${{ matrix.platform }}
+          toolchain: ${{ matrix.build.TOOLCHAIN }}
+          targets: ${{ matrix.build.TARGET }}
 
-      # Step 3: Build the project
-      - name: Build project
-        run: cargo build --release
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
 
-      # Step 4: Archive build artifacts
-      - name: Archive release binary
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
-        run: zip -j binary-${{ matrix.platform }} target/release/rustywatch
+      - name: Build the project
+        shell: bash
+        run: |
+          if [ "${{ matrix.build.ALL_FEATURES }}" = true ]; then
+            cargo build --locked --verbose
+          else
+            cargo build --no-default-features --locked --verbose
+          fi
 
-      # Step 5: Upload release binaries
-      - name: Upload Release Asset
-        uses: actions/upload-artifact@v3
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-release
-          path: target/release/rustywatch
+          name: rustywatch-${{ matrix.build.TARGET }}-assets
+          path: target/debug/rustywatch*
 
-  # Publish to GitHub Releases when a tag is pushed
-  publish:
-    name: Publish Release
-    needs: release
+  test:
+    name: Test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate code coverage
+        run: |
+          cargo build
+          cargo llvm-cov --lcov --output-path lcov.info --lib
+        env:
+          OUT_DIR: target
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
         with:
-          files: |
-            target/release/rustywatch-ubuntu
-            target/release/rustywatch-macos
-            target/release/rustywatch-windows
+          name: code-coverage-report
+          files: lcov.info
+          fail_ci_if_error: true
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  commit-format:
+    name: Commit format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+
+      - name: Checkout the repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Run committed
+        uses: crate-ci/committed@master
+        with:
+          args: "-vv"
+          commits: "HEAD"
+
+  code-format:
+    name: Code format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check code formatting
+        run: cargo fmt --all -- --check
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install editorconfig-checker
+        uses: editorconfig-checker/action-editorconfig-checker@main
+
+      - name: Check file formatting
+        run: editorconfig-checker
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check lints
+        run: cargo clippy -- -D warnings
+
+  deny:
+    name: Deny
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check all
+
+  links:
+    name: Links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run lychee
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: -v *.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  typos:
+    name: Typos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Check typos
+        uses: crate-ci/typos@master
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install cargo-binstall
+        uses: taiki-e/install-action@cargo-binstall
+
+      - name: Install cargo-msrv
+        run: cargo binstall -y --force cargo-msrv
+
+      - name: Run cargo-msrv
+        run: cargo msrv --output-format json verify | tail -n 1 | jq --exit-status '.success'
