@@ -24,7 +24,7 @@ With its superior performance, lightweight design, and cross-platform capabiliti
 
 Make your workflows smarter, faster, and more efficient with RustyWatch.
 
-## Instalatiom
+## Instalation
 
 WIP
 
