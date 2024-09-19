@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # This triggers the workflow on tag pushes like v1.0.0
+
+jobs:
+  release:
+    name: Release Build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]  # Target multiple platforms
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Rust environment
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.platform }}
+
+      # Step 3: Build the project
+      - name: Build project
+        run: cargo build --release
+
+      # Step 4: Archive build artifacts
+      - name: Archive release binary
+        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        run: zip -j binary-${{ matrix.platform }} target/release/rustywatch
+
+      # Step 5: Upload release binaries
+      - name: Upload Release Asset
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.platform }}-release
+          path: target/release/rustywatch
+
+  # Publish to GitHub Releases when a tag is pushed
+  release:
+    name: Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/release/rustywatch-ubuntu
+            target/release/rustywatch-macos
+            target/release/rustywatch-windows
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
