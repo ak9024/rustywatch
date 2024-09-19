@@ -1,12 +1,10 @@
 pub mod args;
 
 use args::Args;
+use log::{error, info};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
-use std::path::Path;
-use std::process::Command;
-use std::sync::mpsc::channel;
-use std::{error::Error, result::Result};
-use tokio::task;
+use std::{error::Error, path::Path, process::Output, result::Result, str, sync::mpsc::channel};
+use tokio::{process::Command as TokioCommand, task};
 
 pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
     let (tx, rx) = channel();
@@ -22,25 +20,42 @@ pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
         .watch(directory, RecursiveMode::Recursive)
         .expect("Failed to watch directory");
 
-    println!("Watching directory: {}", args.dir);
+    info!("Watching directory: {}", args.dir);
 
     while let Ok(res) = rx.recv() {
         match res {
             Ok(event) => {
                 if matches!(event.kind, EventKind::Modify(_)) {
-                    println!("File change detected: {:?}", event);
+                    info!("File change detected: {:?}", event.paths);
 
                     let cmd = args.command.clone();
                     task::spawn(async move {
-                        if let Err(e) = Command::new("sh").arg("-c").arg(&cmd).status() {
-                            eprintln!("Failed to run command: {}", e)
+                        info!("Executing command: {}", cmd);
+                        match run_command(&cmd).await {
+                            Ok(output) => {
+                                if output.status.success() {
+                                    info!("{}", str::from_utf8(&output.stdout).unwrap())
+                                } else {
+                                    error!("Command failed with status: {}", output.status)
+                                }
+                            }
+                            Err(e) => error!("Failed to run command: {}", e),
                         }
                     });
                 }
             }
-            Err(e) => println!("Error watching directory: {:?}", e),
+            Err(e) => error!("Error watching directory: {:?}", e),
         }
     }
 
     Ok(())
+}
+
+async fn run_command(cmd: &str) -> Result<Output, Box<dyn Error + Send + Sync>> {
+    TokioCommand::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .output()
+        .await
+        .map_err(Into::into)
 }
