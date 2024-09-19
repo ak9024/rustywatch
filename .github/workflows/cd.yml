@@ -163,24 +163,24 @@ jobs:
       #       --passphrase-fd 0 --detach-sign \
       #       rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}.tar.gz
 
-      - name: Generate a changelog
-        uses: orhun/git-cliff-action@v4
-        id: git-cliff
-        with:
-          args: --latest --github-repo ${{ github.repository }}
-        env:
-          OUTPUT: CHANGES.md
-
-      - name: Upload the binary releases
-        uses: svenstaro/upload-release-action@v2
-        with:
-          file: rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}*
-          file_glob: true
-          overwrite: true
-          tag: ${{ github.ref }}
-          release_name: "Release v${{ env.RELEASE_VERSION }}"
-          body: ${{ steps.git-cliff.outputs.content }}
-          repo_token: ${{ secrets.RELEASE_TOKEN }}
+      # - name: Generate a changelog
+      #   uses: orhun/git-cliff-action@v4
+      #   id: git-cliff
+      #   with:
+      #     args: --latest --github-repo ${{ github.repository }}
+      #   env:
+      #     OUTPUT: CHANGES.md
+      #
+      # - name: Upload the binary releases
+      #   uses: svenstaro/upload-release-action@v2
+      #   with:
+      #     file: rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}*
+      #     file_glob: true
+      #     overwrite: true
+      #     tag: ${{ github.ref }}
+      #     release_name: "Release v${{ env.RELEASE_VERSION }}"
+      #     body: ${{ steps.git-cliff.outputs.content }}
+      #     repo_token: ${{ secrets.RELEASE_TOKEN }}
 
   publish-crates-io:
     name: Publish on crates.io
