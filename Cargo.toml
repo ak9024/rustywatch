@@ -1,9 +1,14 @@
 [package]
 name = "rustywatch"
+description = "A file watcher CLI built with Rust"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 clap = { version = "4.5.17", features = ["derive"] }
 notify = "6.1.1"
 tokio = { version = "1.40.0", features = ["full"] }
+
+[profile.release]
+strip = true
