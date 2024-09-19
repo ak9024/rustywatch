@@ -153,15 +153,15 @@ jobs:
               > rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}.tar.gz.sha512
           fi
 
-      - name: Sign the release
-        if: matrix.build.OS != 'windows-2022'
-        run: |
-          echo "${{ secrets.GPG_RELEASE_KEY }}" | base64 --decode > private.key
-          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
-            --passphrase-fd 0 --import private.key
-          echo "${{secrets.GPG_PASSPHRASE}}" | gpg --pinentry-mode=loopback \
-            --passphrase-fd 0 --detach-sign \
-            rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}.tar.gz
+      # - name: Sign the release
+      #   if: matrix.build.OS != 'windows-2022'
+      #   run: |
+      #     echo "${{ secrets.GPG_RELEASE_KEY }}" | base64 --decode > private.key
+      #     echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --pinentry-mode=loopback \
+      #       --passphrase-fd 0 --import private.key
+      #     echo "${{secrets.GPG_PASSPHRASE}}" | gpg --pinentry-mode=loopback \
+      #       --passphrase-fd 0 --detach-sign \
+      #       rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}.tar.gz
 
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v4
