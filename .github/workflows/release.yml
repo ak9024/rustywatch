@@ -43,8 +43,9 @@ jobs:
           path: target/release/rustywatch
 
   # Publish to GitHub Releases when a tag is pushed
-  release:
+  publish:
     name: Publish Release
+    needs: release
     runs-on: ubuntu-latest
 
     steps:
