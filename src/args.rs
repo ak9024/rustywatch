@@ -1,6 +1,6 @@
 use clap::Parser;
 
-const TITLE: &'static str = r#"
+const TITLE: &str = r#"
 ╭━━━╮╱╱╱╱╱╭╮╱╱╱╱╭╮╭╮╭╮╱╱╭╮╱╱╱╭╮
 ┃╭━╮┃╱╱╱╱╭╯╰╮╱╱╱┃┃┃┃┃┃╱╭╯╰╮╱╱┃┃
 ┃╰━╯┣╮╭┳━┻╮╭╋╮╱╭┫┃┃┃┃┣━┻╮╭╋━━┫╰━╮
@@ -9,7 +9,7 @@ const TITLE: &'static str = r#"
 ╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
 ╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯"#;
-const VERSION: &'static str = "v0.1.3";
+const VERSION: &str = "v0.1.3";
 
 pub fn title() {
     println!("{}", TITLE);

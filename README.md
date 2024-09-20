@@ -4,11 +4,11 @@
 
 [![asciicast](https://asciinema.org/a/PAKBZOON6TZgbgS41dU73Niq5.svg)](https://asciinema.org/a/PAKBZOON6TZgbgS41dU73Niq5)
 
-Hot reloader inspired by https://github.com/air-verse/air/tree/master build with Rust.
+Live reloading inspired by https://github.com/air-verse/air/tree/master build with Rust.
 
 ## Features
 
-- Hot reloader for any programing languages
+- Live reloading for any programing languages
 - Better building process
 - Lite just 16.9 kB binary
 - Allow watching new directories
