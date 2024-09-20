@@ -52,10 +52,11 @@ pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
 }
 
 async fn run_command(cmd: &str) -> Result<Output, Box<dyn Error + Send + Sync>> {
-    TokioCommand::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .output()
-        .await
-        .map_err(Into::into)
+    let output = if cfg!(target_os = "windows") {
+        TokioCommand::new("cmd").arg("/C").arg(cmd).output().await?
+    } else {
+        TokioCommand::new("sh").arg("-c").arg(cmd).output().await?
+    };
+
+    Ok(output)
 }
