@@ -17,9 +17,7 @@ pub async fn watch_dir<P: AsRef<Path>>(path: P, command: String) -> notify::Resu
     loop {
         match rx.recv() {
             Ok(Ok(event)) => match event.kind {
-                EventKind::Modify(modify_kind)
-                    if matches!(modify_kind, notify::event::ModifyKind::Data(_)) =>
-                {
+                EventKind::Modify(notify::event::ModifyKind::Data(_)) => {
                     for path in event.paths {
                         if let Ok(metadata) = metadata(&path) {
                             if metadata.is_file() {
