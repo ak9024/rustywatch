@@ -2,7 +2,6 @@ pub mod args;
 pub mod logger;
 
 use args::Args;
-use core::str;
 use log::{error, info};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{error::Error, path::Path, process::Output, result::Result, str, sync::mpsc::channel};
