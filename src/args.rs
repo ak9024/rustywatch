@@ -9,12 +9,12 @@ const TITLE: &str = r#"
 ╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
 ╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯"#;
-const VERSION: &str = "v0.1.3";
+const VERSION: &str = "v0.1.4";
 
 pub fn title() {
     println!("{}", TITLE);
-    println!("\n");
     println!("version: {}", VERSION);
+    println!("\n");
 }
 
 #[derive(Parser, Debug)]

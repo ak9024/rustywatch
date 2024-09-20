@@ -18,7 +18,7 @@ pub async fn watch_dir<P: AsRef<Path>>(
 
     watcher.watch(path.as_ref(), RecursiveMode::Recursive)?;
 
-    info!("Waching dir: {:?}", path.as_ref());
+    info!("Waching directory: {:?}", path.as_ref());
 
     loop {
         match rx.recv_timeout(Duration::from_secs(10)) {
@@ -38,12 +38,14 @@ pub async fn watch_dir<P: AsRef<Path>>(
                                         match run_command(&command).await {
                                             Ok(output) => {
                                                 if output.status.success() {
-                                                    info!(
+                                                    info!("File changed: {:?}", path);
+                                                    print!(
                                                         "{}",
                                                         str::from_utf8(&output.stdout).unwrap()
                                                     )
                                                 } else {
-                                                    error!(
+                                                    error!("File changed: {:?}", path);
+                                                    print!(
                                                         "{}",
                                                         str::from_utf8(&output.stderr).unwrap()
                                                     )
