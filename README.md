@@ -2,7 +2,7 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/ci.yml) ![Crates.io License (version)](https://img.shields.io/crates/l/rustywatch/0.1.0) ![Crates.io Size](https://img.shields.io/crates/size/rustywatch) ![Crates.io Downloads (version)](https://img.shields.io/crates/dv/rustywatch/0.1.0)
 
-![demo-rustywatch](./demo-rustywatch.mov)
+[![asciicast](https://asciinema.org/a/PAKBZOON6TZgbgS41dU73Niq5.svg)](https://asciinema.org/a/PAKBZOON6TZgbgS41dU73Niq5)
 
 The High-Performance File Monitoring Tool for DevOps Automation
 
