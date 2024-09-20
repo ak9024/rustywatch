@@ -4,24 +4,54 @@
 
 [![asciicast](https://asciinema.org/a/PAKBZOON6TZgbgS41dU73Niq5.svg)](https://asciinema.org/a/PAKBZOON6TZgbgS41dU73Niq5)
 
-The High-Performance File Monitoring Tool for DevOps Automation
+Hot reloader inspired by https://github.com/air-verse/air/tree/master build with Rust.
 
-RustyWatch is a robust, Rust-powered file monitoring CLI tool built for developers and DevOps teams who need reliable, high-performance file change detection and automation. Whether you’re running critical services in production, testing, or deploying on local or remote environments, RustyWatch is your lightweight solution to effortlessly track changes and trigger custom workflows.
+## Features
+
+- Hot reloader for any programing languages
+- Better building process
+- Lite just 16.9 kB binary
+- Allow watching new directories
+- Colorful log output
 
 ## Install
 
-```bash
+```shell
 cargo install rustywatch
 ```
 
 ## Usage
 
-```bash
-rustywatch -d . -c "echo 'Files changes!'"
+```shell
+━━━╮╱╱╱╱╱╭╮╱╱╱╱╭╮╭╮╭╮╱╱╭╮╱╱╱╭╮
+┃╭━╮┃╱╱╱╱╭╯╰╮╱╱╱┃┃┃┃┃┃╱╭╯╰╮╱╱┃┃
+┃╰━╯┣╮╭┳━┻╮╭╋╮╱╭┫┃┃┃┃┣━┻╮╭╋━━┫╰━╮
+┃╭╮╭┫┃┃┃━━┫┃┃┃╱┃┃╰╯╰╯┃╭╮┃┃┃╭━┫╭╮┃
+┃┃┃╰┫╰╯┣━━┃╰┫╰━╯┣╮╭╮╭┫╭╮┃╰┫╰━┫┃┃┃
+╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
+╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯
+
+
+version: v0.1.3
+Live reload for any programing languages
+
+Usage: rustywatch [OPTIONS] --cmd <COMMAND>
+
+Options:
+  -d, --dir <DIR>        [default: .]
+  -c, --cmd <COMMAND>
+  -i, --ignore <IGNORE>
+  -h, --help             Print help
+  -V, --version          Print version
 ```
 
-Example using with Go
-```bash
+```shell
+rustywatch -d . -c "echo 'Files changes!'" --ignore .git --ignore ./tmp
+```
+
+- Example using with Go
+```shell
 mkdir go-project;
 cd go-project;
 go mod init go-project;
@@ -33,17 +63,20 @@ vim main.go
 rustywatch -d . -c 'go run main.go'
 ```
 
-Example using NodeJS
-
-```bash
+- Example using NodeJS
+```shell
 mkdir nodejs-project
 cd nodejs-project;
 touch index.js
 # edit file index.js and and run the project with rustywatch 
+vim index.js
 # then the project will be running with hot reload
 rustywatch -d . -c 'node index.js'
 ```
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=ak9024/rustywatch&type=Date)](https://star-history.com/#ak9024/rustywatch&Date)
 ## License
 
 MIT & Apache-2.0

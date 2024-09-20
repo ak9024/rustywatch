@@ -1,7 +1,7 @@
 [package]
 name = "rustywatch"
-description = "The High-Performance File Monitoring Tool for DevOps Automation"
-version = "0.1.2"
+description = "Live reload for any programing languages"
+version = "0.1.3"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 

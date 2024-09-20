@@ -1,13 +1,33 @@
 use clap::Parser;
 
+const TITLE: &'static str = r#"
+╭━━━╮╱╱╱╱╱╭╮╱╱╱╱╭╮╭╮╭╮╱╱╭╮╱╱╱╭╮
+┃╭━╮┃╱╱╱╱╭╯╰╮╱╱╱┃┃┃┃┃┃╱╭╯╰╮╱╱┃┃
+┃╰━╯┣╮╭┳━┻╮╭╋╮╱╭┫┃┃┃┃┣━┻╮╭╋━━┫╰━╮
+┃╭╮╭┫┃┃┃━━┫┃┃┃╱┃┃╰╯╰╯┃╭╮┃┃┃╭━┫╭╮┃
+┃┃┃╰┫╰╯┣━━┃╰┫╰━╯┣╮╭╮╭┫╭╮┃╰┫╰━┫┃┃┃
+╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
+╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯"#;
+const VERSION: &'static str = "v0.1.3";
+
+pub fn title() {
+    println!("{}", TITLE);
+    println!("\n");
+    println!("version: {}", VERSION);
+}
+
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version = VERSION, about, long_about = None)]
 pub struct Args {
     #[arg(short = 'd', long = "dir", default_value = ".")]
     pub dir: String,
 
     #[arg(short = 'c', long = "cmd")]
     pub command: String,
+
+    #[arg(short = 'i', long)]
+    pub ignore: Vec<String>,
 }
 
 #[cfg(test)]
@@ -19,8 +39,10 @@ mod tests {
         let args = Args {
             dir: String::from("/test/dir"),
             command: String::from("test_command"),
+            ignore: vec![String::from(".git")],
         };
         assert_eq!(args.dir, "/test/dir");
         assert_eq!(args.command, "test_command");
+        assert_eq!(args.ignore[0], ".git")
     }
 }
