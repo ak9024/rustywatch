@@ -25,84 +25,84 @@ jobs:
               TARGET: x86_64-unknown-linux-musl,
               ALL_FEATURES: true,
             }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: aarch64-unknown-linux-gnu,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: riscv64gc-unknown-linux-gnu,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: i686-unknown-linux-gnu,
-              ALL_FEATURES: true,
-            }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: aarch64-unknown-linux-gnu,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: riscv64gc-unknown-linux-gnu,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: i686-unknown-linux-gnu,
+          #     ALL_FEATURES: true,
+          #   }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: i686-unknown-linux-musl,
               ALL_FEATURES: true,
             }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: aarch64-unknown-linux-musl,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: armv5te-unknown-linux-gnueabi,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: armv7-unknown-linux-gnueabihf,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: arm-unknown-linux-gnueabi,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: arm-unknown-linux-gnueabihf,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: ubuntu-22.04,
-              TOOLCHAIN: stable,
-              TARGET: powerpc64le-unknown-linux-gnu,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: windows-2022,
-              TOOLCHAIN: stable,
-              TARGET: x86_64-pc-windows-msvc,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: macos-14,
-              TOOLCHAIN: stable,
-              TARGET: x86_64-apple-darwin,
-              ALL_FEATURES: true,
-            }
-          - {
-              OS: macos-14,
-              TOOLCHAIN: stable,
-              TARGET: aarch64-apple-darwin,
-              ALL_FEATURES: true,
-            }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: aarch64-unknown-linux-musl,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: armv5te-unknown-linux-gnueabi,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: armv7-unknown-linux-gnueabihf,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: arm-unknown-linux-gnueabi,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: arm-unknown-linux-gnueabihf,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: ubuntu-22.04,
+          #     TOOLCHAIN: stable,
+          #     TARGET: powerpc64le-unknown-linux-gnu,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: windows-2022,
+          #     TOOLCHAIN: stable,
+          #     TARGET: x86_64-pc-windows-msvc,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: macos-14,
+          #     TOOLCHAIN: stable,
+          #     TARGET: x86_64-apple-darwin,
+          #     ALL_FEATURES: true,
+          #   }
+          # - {
+          #     OS: macos-14,
+          #     TOOLCHAIN: stable,
+          #     TARGET: aarch64-apple-darwin,
+          #     ALL_FEATURES: true,
+          #   }
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4

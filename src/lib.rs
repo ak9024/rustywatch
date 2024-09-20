@@ -1,4 +1,5 @@
 pub mod args;
+pub mod logger;
 
 use args::Args;
 use log::{error, info};
