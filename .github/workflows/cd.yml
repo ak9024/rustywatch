@@ -41,67 +41,67 @@ jobs:
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: i686-unknown-linux-gnu,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: i686-unknown-linux-musl,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: aarch64-unknown-linux-musl,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: armv5te-unknown-linux-gnueabi,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: armv7-unknown-linux-gnueabihf,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: arm-unknown-linux-gnueabi,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: arm-unknown-linux-gnueabihf,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: ubuntu-22.04,
               TOOLCHAIN: stable,
               TARGET: powerpc64le-unknown-linux-gnu,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: windows-2022,
               TOOLCHAIN: stable,
               TARGET: x86_64-pc-windows-msvc,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: macos-14,
               TOOLCHAIN: stable,
               TARGET: x86_64-apple-darwin,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
           - {
               OS: macos-14,
               TOOLCHAIN: stable,
               TARGET: aarch64-apple-darwin,
-              ALL_FEATURES: false,
+              ALL_FEATURES: true,
             }
     steps:
       - name: Checkout the repository
@@ -163,24 +163,24 @@ jobs:
       #       --passphrase-fd 0 --detach-sign \
       #       rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}.tar.gz
 
-      # - name: Generate a changelog
-      #   uses: orhun/git-cliff-action@v4
-      #   id: git-cliff
-      #   with:
-      #     args: --latest --github-repo ${{ github.repository }}
-      #   env:
-      #     OUTPUT: CHANGES.md
-      #
-      # - name: Upload the binary releases
-      #   uses: svenstaro/upload-release-action@v2
-      #   with:
-      #     file: rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}*
-      #     file_glob: true
-      #     overwrite: true
-      #     tag: ${{ github.ref }}
-      #     release_name: "Release v${{ env.RELEASE_VERSION }}"
-      #     body: ${{ steps.git-cliff.outputs.content }}
-      #     repo_token: ${{ secrets.RELEASE_TOKEN }}
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v4
+        id: git-cliff
+        with:
+          args: --latest --github-repo ${{ github.repository }}
+        env:
+          OUTPUT: CHANGES.md
+
+      - name: Upload the binary releases
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: rustywatch-${{ env.RELEASE_VERSION }}-${{ matrix.build.TARGET }}*
+          file_glob: true
+          overwrite: true
+          tag: ${{ github.ref }}
+          release_name: "Release v${{ env.RELEASE_VERSION }}"
+          body: ${{ steps.git-cliff.outputs.content }}
+          repo_token: ${{ secrets.RELEASE_TOKEN }}
 
   publish-crates-io:
     name: Publish on crates.io
