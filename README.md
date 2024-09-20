@@ -1,6 +1,9 @@
 # RustyWatch
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/rust.yml)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/ci.yml)
+![Crates.io License (version)](https://img.shields.io/crates/l/rustywatch/0.1.0)
+
+![Crates.io Size](https://img.shields.io/crates/size/rustywatch)
 
 The High-Performance File Monitoring Tool for DevOps Automation
 
@@ -8,22 +11,16 @@ RustyWatch is a robust, Rust-powered file monitoring CLI tool built for develope
 
 ## Install
 
-WIP
+```bash
+cargo install rustywatch
+```
 
 ## Usage
 
 ```bash
-# run in development mode.
-cargo run -- --dir ./watched_dir --cmd "echo 'Files changes!'"
-
-# release
-cargo build --release
-cp ./target/debug/rustywatch .
-chmod +x rustywatch
-
-rustywatch --dir ./watched_dir --cmd "echo 'Files changes!'"
+rustywatch -d . -c "echo 'Files changes!'"
 ```
 
 ## License
 
-MIT
+MIT & Apache-2.0

@@ -2,6 +2,7 @@ pub mod args;
 pub mod logger;
 
 use args::Args;
+use core::str;
 use log::{error, info};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{error::Error, path::Path, process::Output, result::Result, str, sync::mpsc::channel};
@@ -37,7 +38,8 @@ pub fn run(args: Args) -> Result<(), Box<dyn Error>> {
                                 if output.status.success() {
                                     info!("{}", str::from_utf8(&output.stdout).unwrap())
                                 } else {
-                                    error!("Command failed with status: {}", output.status)
+                                    error!("Command failed with status: {}", output.status);
+                                    error!("{}", str::from_utf8(&output.stderr).unwrap());
                                 }
                             }
                             Err(e) => error!("Failed to run command: {}", e),
