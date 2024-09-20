@@ -6,7 +6,7 @@ use std::process;
 async fn main() {
     logger::setup_logging();
     let args = Args::parse();
-    match run(args) {
+    match run(args).await {
         Ok(_) => process::exit(0),
         Err(e) => {
             eprintln!("{e}");

@@ -20,6 +20,30 @@ cargo install rustywatch
 rustywatch -d . -c "echo 'Files changes!'"
 ```
 
+Example using with Go
+```bash
+mkdir go-project;
+cd go-project;
+go mod init go-project;
+touch main.go;
+# edit file go.
+vim main.go
+# and run the project with rustywatch
+# then the project will be running with hot reload.
+rustywatch -d . -c 'go run main.go'
+```
+
+Example using NodeJS
+
+```bash
+mkdir nodejs-project
+cd nodejs-project;
+touch index.js
+# edit file index.js and and run the project with rustywatch 
+# then the project will be running with hot reload
+rustywatch -d . -c 'go run main.go'
+```
+
 ## License
 
 MIT & Apache-2.0
