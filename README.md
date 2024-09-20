@@ -41,7 +41,7 @@ cd nodejs-project;
 touch index.js
 # edit file index.js and and run the project with rustywatch 
 # then the project will be running with hot reload
-rustywatch -d . -c 'go run main.go'
+rustywatch -d . -c 'node index.js'
 ```
 
 ## License
