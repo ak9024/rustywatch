@@ -1,8 +1,13 @@
 use log::{error, info};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
-    error::Error, fs::metadata, path::Path, process::Output, result::Result, str,
-    sync::mpsc::channel, time::Duration,
+    fs::metadata,
+    io::{BufRead, BufReader},
+    path::Path,
+    process::{Child, Stdio},
+    result::Result,
+    sync::mpsc::channel,
+    time::Duration,
 };
 
 pub async fn watch_dir<P: AsRef<Path>>(
@@ -21,7 +26,7 @@ pub async fn watch_dir<P: AsRef<Path>>(
     info!("Waching directory: {:?}", path.as_ref());
 
     loop {
-        match rx.recv_timeout(Duration::from_secs(10)) {
+        match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(Ok(event)) => {
                 let filtered_paths: Vec<_> = event
                     .paths
@@ -35,20 +40,20 @@ pub async fn watch_dir<P: AsRef<Path>>(
                             for path in filtered_paths {
                                 if let Ok(metadata) = metadata(&path) {
                                     if metadata.is_file() {
-                                        match run_command(&command).await {
-                                            Ok(output) => {
-                                                if output.status.success() {
-                                                    info!("File changed: {:?}", path);
-                                                    print!(
-                                                        "{}",
-                                                        str::from_utf8(&output.stdout).unwrap()
-                                                    )
-                                                } else {
-                                                    error!("File changed: {:?}", path);
-                                                    print!(
-                                                        "{}",
-                                                        str::from_utf8(&output.stderr).unwrap()
-                                                    )
+                                        match run_command(command.clone()).await {
+                                            Ok(child) => {
+                                                info!("File changed: {:?}", path);
+                                                let stdout = child.stdout.unwrap();
+                                                let stderr = child.stderr.unwrap();
+                                                let stdout_reader = BufReader::new(stdout);
+                                                let stderr_reader = BufReader::new(stderr);
+
+                                                for line in stdout_reader.lines() {
+                                                    println!("{}", line.unwrap());
+                                                }
+
+                                                for line in stderr_reader.lines() {
+                                                    eprintln!("{}", line.unwrap());
                                                 }
                                             }
                                             Err(e) => {
@@ -77,20 +82,17 @@ pub async fn watch_dir<P: AsRef<Path>>(
     Ok(())
 }
 
-async fn run_command(cmd: &str) -> Result<Output, Box<dyn Error + Send + Sync>> {
-    let output = if cfg!(target_os = "windows") {
-        tokio::process::Command::new("cmd")
-            .arg("/C")
-            .arg(cmd)
-            .output()
-            .await?
-    } else {
-        tokio::process::Command::new("sh")
+async fn run_command(cmd: String) -> Result<Child, Box<dyn std::error::Error>> {
+    let output = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("sh")
             .arg("-c")
             .arg(cmd)
-            .output()
-            .await?
-    };
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap()
+    })
+    .await?;
 
     Ok(output)
 }
