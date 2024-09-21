@@ -2,11 +2,10 @@ use crate::args::Args;
 use log::{error, info, warn};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
-    error::Error,
     fs::metadata,
     io::{BufRead, BufReader},
     path::Path,
-    process::{self, Child, Stdio},
+    process::{Child, Stdio},
     result::Result,
     sync::mpsc::channel,
     time::Duration,
