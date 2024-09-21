@@ -1,60 +1,97 @@
-use log::{error, info};
+use crate::args::Args;
+use log::{error, info, warn};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
-    error::Error, fs::metadata, path::Path, process::Output, result::Result, str,
-    sync::mpsc::channel, time::Duration,
+    fs::metadata,
+    io::{BufRead, BufReader},
+    path::Path,
+    process::{self, Child, Stdio},
+    result::Result,
+    sync::mpsc::channel,
+    time::Duration,
 };
 
-pub async fn watch_dir<P: AsRef<Path>>(
-    path: P,
-    command: String,
-    ignored_patterns: Vec<String>,
-) -> notify::Result<()> {
+pub async fn watch_dir(args: Args) -> notify::Result<()> {
     let (tx, rx) = channel();
 
     let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
         tx.send(res).unwrap();
-    })?;
+    })
+    .unwrap();
 
-    watcher.watch(path.as_ref(), RecursiveMode::Recursive)?;
+    watcher
+        .watch(args.dir.as_ref(), RecursiveMode::Recursive)
+        .unwrap();
 
-    info!("Waching directory: {:?}", path.as_ref());
+    info!("Waching directory: {:?}", args.dir);
+
+    let mut running_binary: Option<Child> = None;
 
     loop {
-        match rx.recv_timeout(Duration::from_secs(10)) {
+        match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(Ok(event)) => {
-                let filtered_paths: Vec<_> = event
-                    .paths
-                    .into_iter()
-                    .filter(|path| !is_ignored(path, &ignored_patterns))
-                    .collect();
+                if let EventKind::Modify(modify_kind) = event.kind {
+                    if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
+                        let paths = event
+                            .paths
+                            .iter()
+                            .filter(|path| !is_ignored(path, &args.ignore))
+                            .collect::<Vec<_>>();
 
-                if !filtered_paths.is_empty() {
-                    if let EventKind::Modify(modify_kind) = event.kind {
-                        if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
-                            for path in filtered_paths {
-                                if let Ok(metadata) = metadata(&path) {
-                                    if metadata.is_file() {
-                                        match run_command(&command).await {
-                                            Ok(output) => {
-                                                if output.status.success() {
-                                                    info!("File changed: {:?}", path);
-                                                    print!(
-                                                        "{}",
-                                                        str::from_utf8(&output.stdout).unwrap()
-                                                    )
-                                                } else {
-                                                    error!("File changed: {:?}", path);
-                                                    print!(
-                                                        "{}",
-                                                        str::from_utf8(&output.stderr).unwrap()
-                                                    )
+                        if !paths.is_empty() {
+                            info!("File content changed: {:?}", paths);
+
+                            if let Some(ref mut child) = running_binary {
+                                match child.kill() {
+                                    Ok(_) => info!("Killed the running binary"),
+                                    Err(e) => error!("Failed to kill binary: {:?}", e),
+                                }
+                            }
+
+                            if let Some(bin_path) = &args.bin_path {
+                                if remove_old_binary(bin_path) {
+                                    if !binary_exists(bin_path) {
+                                        match run_command(args.command.clone()).await {
+                                            Ok(child) => {
+                                                let stdout = child.stdout.unwrap();
+                                                let stderr = child.stderr.unwrap();
+                                                let stdout_reader = BufReader::new(stdout);
+                                                let stderr_reader = BufReader::new(stderr);
+
+                                                for line in stdout_reader.lines() {
+                                                    println!("{}", line.unwrap());
+                                                }
+
+                                                for line in stderr_reader.lines() {
+                                                    eprintln!("{}", line.unwrap());
                                                 }
                                             }
                                             Err(e) => {
                                                 error!("Failed to run command: {}", e)
                                             }
                                         }
+                                    }
+
+                                    running_binary = Some(restart_binary(bin_path));
+                                }
+                            } else {
+                                match run_command(args.command.clone()).await {
+                                    Ok(child) => {
+                                        let stdout = child.stdout.unwrap();
+                                        let stderr = child.stderr.unwrap();
+                                        let stdout_reader = BufReader::new(stdout);
+                                        let stderr_reader = BufReader::new(stderr);
+
+                                        for line in stdout_reader.lines() {
+                                            println!("{}", line.unwrap());
+                                        }
+
+                                        for line in stderr_reader.lines() {
+                                            eprintln!("{}", line.unwrap());
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!("Failed to run command: {}", e)
                                     }
                                 }
                             }
@@ -77,20 +114,17 @@ pub async fn watch_dir<P: AsRef<Path>>(
     Ok(())
 }
 
-async fn run_command(cmd: &str) -> Result<Output, Box<dyn Error + Send + Sync>> {
-    let output = if cfg!(target_os = "windows") {
-        tokio::process::Command::new("cmd")
-            .arg("/C")
-            .arg(cmd)
-            .output()
-            .await?
-    } else {
-        tokio::process::Command::new("sh")
+async fn run_command(cmd: String) -> Result<Child, Box<dyn std::error::Error>> {
+    let output = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("sh")
             .arg("-c")
             .arg(cmd)
-            .output()
-            .await?
-    };
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap()
+    })
+    .await?;
 
     Ok(output)
 }
@@ -105,4 +139,44 @@ fn is_ignored<P: AsRef<Path>>(path: P, ignored_patterns: &[String]) -> bool {
     }
 
     false
+}
+
+fn remove_old_binary(binary_path: &str) -> bool {
+    match metadata(binary_path) {
+        Ok(_) => {
+            warn!("Remove old binary: {}", binary_path);
+            match std::fs::remove_file(binary_path) {
+                Ok(_) => {
+                    warn!("Old binary removed");
+                    true
+                }
+                Err(e) => {
+                    error!("Failed to remove binary: {:?}", e);
+                    false
+                }
+            }
+        }
+        Err(_) => {
+            info!("No binary found to remove.");
+            true
+        }
+    }
+}
+
+fn binary_exists(binary_path: &str) -> bool {
+    metadata(binary_path).is_ok()
+}
+
+fn restart_binary(binary_path: &str) -> Child {
+    info!("Restarting binary: {}", binary_path);
+    match std::process::Command::new(binary_path).spawn() {
+        Ok(child) => {
+            info!("Binary started: {}", child.id());
+            child
+        }
+        Err(e) => {
+            error!("Failed to restart: {:?}", e);
+            process::exit(1)
+        }
+    }
 }

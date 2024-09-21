@@ -28,6 +28,9 @@ pub struct Args {
 
     #[arg(short = 'i', long)]
     pub ignore: Vec<String>,
+
+    #[arg(long)]
+    pub bin_path: Option<String>,
 }
 
 #[cfg(test)]
@@ -40,9 +43,16 @@ mod tests {
             dir: String::from("/test/dir"),
             command: String::from("test_command"),
             ignore: vec![String::from(".git")],
+            bin_path: None,
         };
+
         assert_eq!(args.dir, "/test/dir");
         assert_eq!(args.command, "test_command");
-        assert_eq!(args.ignore[0], ".git")
+        assert_eq!(args.ignore[0], ".git");
+
+        match args.bin_path {
+            Some(cmd_bin) => assert_eq!(cmd_bin, ""),
+            None => assert_eq!(args.bin_path.is_none(), true),
+        };
     }
 }

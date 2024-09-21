@@ -9,6 +9,7 @@ Live reloading inspired by https://github.com/air-verse/air/tree/master build wi
 ## Features
 
 - Live reloading for any programing languages
+- Live reloading for binary
 - Better building process
 - Allow watching new directories
 - Colorful log output
@@ -49,6 +50,18 @@ vim main.go
 # and run the project with rustywatch
 # then the project will be running with hot reload.
 rustywatch -d . -c 'go run main.go' --ignore .git
+```
+
+- Example using with Go (Fiber)
+
+```shell
+mkdir go-fiber;
+cd go-fiber;
+go mod init go-fiber;
+# install fiber framework
+go get github.com/gofiber/fiber/v2
+# start live reload with rustywatch
+rustywatch -d . -c 'go build main.go' --bin-path 'main'
 ```
 
 - Example using with NodeJS
