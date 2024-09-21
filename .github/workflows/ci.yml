@@ -143,38 +143,38 @@ jobs:
           name: rustywatch-${{ matrix.build.TARGET }}-assets
           path: target/debug/rustywatch*
 
-  # test:
-  #   name: Test
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout the repository
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Install Rust toolchain
-  #       uses: dtolnay/rust-toolchain@stable
-  #
-  #     - name: Install cargo-llvm-cov
-  #       uses: taiki-e/install-action@cargo-llvm-cov
-  #
-  #     - name: Cache Cargo dependencies
-  #       uses: Swatinem/rust-cache@v2
-  #
-  #     - name: Generate code coverage
-  #       run: |
-  #         cargo build
-  #         cargo llvm-cov --lcov --output-path lcov.info --lib
-  #       env:
-  #         OUT_DIR: target
-  #
-  #     - name: Upload coverage to Codecov
-  #       uses: codecov/codecov-action@v4
-  #       with:
-  #         name: code-coverage-report
-  #         files: lcov.info
-  #         fail_ci_if_error: true
-  #         verbose: true
-  #       env:
-  #         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Generate code coverage
+        run: |
+          cargo build
+          cargo llvm-cov --lcov --output-path lcov.info --lib
+        env:
+          OUT_DIR: target
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          name: code-coverage-report
+          files: lcov.info
+          fail_ci_if_error: true
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # commit-format:
   #   name: Commit format
@@ -195,7 +195,7 @@ jobs:
   #       with:
   #         args: "-vv"
   #         commits: "HEAD"
-  #
+  
   code-format:
     name: Code format
     runs-on: ubuntu-latest
