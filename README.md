@@ -1,6 +1,12 @@
 # RustyWatch
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/ci.yml) ![Crates.io License (version)](https://img.shields.io/crates/l/rustywatch/0.1.0) ![Crates.io Size](https://img.shields.io/crates/size/rustywatch) ![Crates.io Downloads (version)](https://img.shields.io/crates/dv/rustywatch/0.1.0)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/cd.yml?style=flat&label=deployment) 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/ci.yml?branch=main&style=plastic&label=lint) ![Crates.io Total Downloads](https://img.shields.io/crates/d/rustywatch) 
+![Crates.io License](https://img.shields.io/crates/l/rustywatch) 
+![docs.rs](https://img.shields.io/docsrs/rustywatch?style=social) ![Crates.io Size](https://img.shields.io/crates/size/rustywatch?style=flat) ![GitHub Repo stars](https://img.shields.io/github/stars/ak9024/rustywatch) 
+![GitHub Tag](https://img.shields.io/github/v/tag/ak9024/rustywatch) 
+![Crates.io Version](https://img.shields.io/crates/v/rustywatch) 
+![Codecov](https://img.shields.io/codecov/c/github/ak9024/rustywatch)
 
 ```shell
 
@@ -28,17 +34,19 @@ Options:
   -V, --version              Print version
 ```
 
-Live reloading inspired by https://github.com/air-verse/air/tree/master build with Rust.
+Live reloading inspired by [Go Air](https://github.com/air-verse/air/tree/master) build with Rust.
 
 ## Features
 
-- Live reloading for any programing languages
-- Live reloading for binary
-- Better building process
-- Allow watching new directories
-- Colorful log output
+- Live reloading support for all programming languages
+- Real-time reloading for binaries
+- Optimized build process
+- Automatic detection and monitoring of new directories
+- Enhanced, colorful log output
 
 ## Install
+
+> curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 ```shell
 cargo install rustywatch
