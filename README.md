@@ -85,7 +85,7 @@ go mod init go-fiber;
 # install fiber framework
 go get github.com/gofiber/fiber/v2
 # start live reload with rustywatch
-rustywatch -d . -c 'go build main.go' --bin-path './main'
+rustywatch -d . -c 'go build main.go' --bin-path './main' --bin-arg server
 ```
 
 - Example using with NodeJS

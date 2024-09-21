@@ -9,7 +9,7 @@ const TITLE: &str = r#"
 ╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
 ╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯"#;
-const VERSION: &str = "v0.1.6";
+const VERSION: &str = "v0.1.7";
 
 pub fn title() {
     println!("{}", TITLE);
@@ -31,6 +31,9 @@ pub struct Args {
 
     #[arg(long)]
     pub bin_path: Option<String>,
+
+    #[arg(short = 'a', long)]
+    pub bin_arg: Option<Vec<String>>,
 }
 
 #[cfg(test)]
@@ -44,6 +47,7 @@ mod tests {
             command: String::from("test_command"),
             ignore: vec![String::from(".git")],
             bin_path: None,
+            bin_arg: Some(vec![String::from("server")]),
         };
 
         assert_eq!(args.dir, "/test/dir");
@@ -54,5 +58,14 @@ mod tests {
             Some(cmd_bin) => assert_eq!(cmd_bin, ""),
             None => assert_eq!(args.bin_path.is_none(), true),
         };
+
+        match args.bin_arg {
+            Some(arg) => {
+                for a in arg {
+                    assert_eq!(a.as_str(), "server")
+                }
+            }
+            None => {}
+        }
     }
 }

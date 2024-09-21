@@ -73,13 +73,14 @@ pub async fn watch_dir(args: Args) -> notify::Result<()> {
                                         }
                                     }
 
-                                    running_binary = match restart_binary(bin_path) {
-                                        Ok(child) => Some(child),
-                                        Err(e) => {
-                                            error!("Failed to restart binary: {:?}", e);
-                                            None
+                                    running_binary =
+                                        match restart_binary(bin_path, args.bin_arg.clone()) {
+                                            Ok(child) => Some(child),
+                                            Err(e) => {
+                                                error!("Failed to restart binary: {:?}", e);
+                                                None
+                                            }
                                         }
-                                    }
                                 }
                             } else {
                                 match run_command(args.command.clone()).await {
@@ -174,16 +175,31 @@ fn binary_exists(binary_path: &str) -> bool {
     metadata(binary_path).is_ok()
 }
 
-fn restart_binary(binary_path: &str) -> Result<Child, std::io::Error> {
+fn restart_binary(
+    binary_path: &str,
+    cmd_arg: Option<Vec<String>>,
+) -> Result<Child, std::io::Error> {
     info!("Restarting binary: {}", binary_path);
-    match std::process::Command::new(binary_path).spawn() {
-        Ok(child) => {
-            info!("Binary started: {}", child.id());
-            Ok(child)
-        }
-        Err(e) => {
-            error!("Failed to restart: {:?}", e);
-            Err(e)
-        }
+    match cmd_arg {
+        Some(args) => match std::process::Command::new(binary_path).args(args).spawn() {
+            Ok(child) => {
+                info!("Binary started: {}", child.id());
+                Ok(child)
+            }
+            Err(e) => {
+                error!("Failed to restart: {:?}", e);
+                Err(e)
+            }
+        },
+        _ => match std::process::Command::new(binary_path).spawn() {
+            Ok(child) => {
+                info!("Binary started: {}", child.id());
+                Ok(child)
+            }
+            Err(e) => {
+                error!("Failed to restart: {:?}", e);
+                Err(e)
+            }
+        },
     }
 }
