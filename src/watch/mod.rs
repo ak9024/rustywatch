@@ -5,7 +5,7 @@ use std::{
     fs::metadata,
     io::{BufRead, BufReader},
     path::Path,
-    process::{self, Child, Stdio},
+    process::{Child, Stdio},
     result::Result,
     sync::mpsc::channel,
     time::Duration,
@@ -24,6 +24,7 @@ pub async fn watch_dir(args: Args) -> notify::Result<()> {
         .unwrap();
 
     info!("Waching directory: {:?}", args.dir);
+    info!("Please make any changes to starting");
 
     let mut running_binary: Option<Child> = None;
 
@@ -72,7 +73,13 @@ pub async fn watch_dir(args: Args) -> notify::Result<()> {
                                         }
                                     }
 
-                                    running_binary = Some(restart_binary(bin_path));
+                                    running_binary = match restart_binary(bin_path) {
+                                        Ok(child) => Some(child),
+                                        Err(e) => {
+                                            error!("Failed to restart binary: {:?}", e);
+                                            None
+                                        }
+                                    }
                                 }
                             } else {
                                 match run_command(args.command.clone()).await {
@@ -167,16 +174,16 @@ fn binary_exists(binary_path: &str) -> bool {
     metadata(binary_path).is_ok()
 }
 
-fn restart_binary(binary_path: &str) -> Child {
+fn restart_binary(binary_path: &str) -> Result<Child, std::io::Error> {
     info!("Restarting binary: {}", binary_path);
     match std::process::Command::new(binary_path).spawn() {
         Ok(child) => {
             info!("Binary started: {}", child.id());
-            child
+            Ok(child)
         }
         Err(e) => {
             error!("Failed to restart: {:?}", e);
-            process::exit(1)
+            Err(e)
         }
     }
 }

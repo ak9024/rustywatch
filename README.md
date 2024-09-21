@@ -2,7 +2,31 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/ci.yml) ![Crates.io License (version)](https://img.shields.io/crates/l/rustywatch/0.1.0) ![Crates.io Size](https://img.shields.io/crates/size/rustywatch) ![Crates.io Downloads (version)](https://img.shields.io/crates/dv/rustywatch/0.1.0)
 
-![demo](./demo.png)
+```shell
+
+╭━━━╮╱╱╱╱╱╭╮╱╱╱╱╭╮╭╮╭╮╱╱╭╮╱╱╱╭╮
+┃╭━╮┃╱╱╱╱╭╯╰╮╱╱╱┃┃┃┃┃┃╱╭╯╰╮╱╱┃┃
+┃╰━╯┣╮╭┳━┻╮╭╋╮╱╭┫┃┃┃┃┣━┻╮╭╋━━┫╰━╮
+┃╭╮╭┫┃┃┃━━┫┃┃┃╱┃┃╰╯╰╯┃╭╮┃┃┃╭━┫╭╮┃
+┃┃┃╰┫╰╯┣━━┃╰┫╰━╯┣╮╭╮╭┫╭╮┃╰┫╰━┫┃┃┃
+╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
+╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
+╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯
+version: v0.1.5
+
+
+Live reloading for any programing languages
+
+Usage: rustywatch [OPTIONS] --cmd <COMMAND>
+
+Options:
+  -d, --dir <DIR>            [default: .]
+  -c, --cmd <COMMAND>
+  -i, --ignore <IGNORE>
+      --bin-path <BIN_PATH>
+  -h, --help                 Print help
+  -V, --version              Print version
+```
 
 Live reloading inspired by https://github.com/air-verse/air/tree/master build with Rust.
 
@@ -61,7 +85,7 @@ go mod init go-fiber;
 # install fiber framework
 go get github.com/gofiber/fiber/v2
 # start live reload with rustywatch
-rustywatch -d . -c 'go build main.go' --bin-path 'main'
+rustywatch -d . -c 'go build main.go' --bin-path './main'
 ```
 
 - Example using with NodeJS
