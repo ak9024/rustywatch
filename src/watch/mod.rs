@@ -164,10 +164,7 @@ fn remove_old_binary(binary_path: &str) -> bool {
 }
 
 fn binary_exists(binary_path: &str) -> bool {
-    match metadata(binary_path) {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    metadata(binary_path).is_ok()
 }
 
 fn restart_binary(binary_path: &str) -> Child {
