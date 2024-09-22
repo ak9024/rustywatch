@@ -6,7 +6,11 @@ pub fn setup_logging() {
         env::set_var("RUST_LOG", "info");
     }
 
-    Builder::from_env(Env::default().filter_or("RUST_LOG", "info")).init()
+    Builder::from_env(Env::default().filter_or("RUST_LOG", "info"))
+        .format_timestamp(None)
+        .format_indent(None)
+        .format_target(false)
+        .init()
 }
 
 #[cfg(test)]

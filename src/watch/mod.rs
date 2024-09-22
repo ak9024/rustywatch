@@ -62,20 +62,7 @@ pub async fn watch(
                                         if remove(bin_path) {
                                             if !exists(bin_path) {
                                                 match exec(cmd.clone()).await {
-                                                    Ok(child) => {
-                                                        let stdout = child.stdout.unwrap();
-                                                        let stderr = child.stderr.unwrap();
-                                                        let stdout_reader = BufReader::new(stdout);
-                                                        let stderr_reader = BufReader::new(stderr);
-
-                                                        for line in stdout_reader.lines() {
-                                                            println!("{}", line.unwrap());
-                                                        }
-
-                                                        for line in stderr_reader.lines() {
-                                                            eprintln!("{}", line.unwrap());
-                                                        }
-                                                    }
+                                                    Ok(child) => print_into_shell(child),
                                                     Err(e) => {
                                                         error!("Failed to run command: {}", e)
                                                     }
@@ -93,20 +80,7 @@ pub async fn watch(
                                         }
                                     } else {
                                         match exec(cmd.clone()).await {
-                                            Ok(child) => {
-                                                let stdout = child.stdout.unwrap();
-                                                let stderr = child.stderr.unwrap();
-                                                let stdout_reader = BufReader::new(stdout);
-                                                let stderr_reader = BufReader::new(stderr);
-
-                                                for line in stdout_reader.lines() {
-                                                    println!("{}", line.unwrap());
-                                                }
-
-                                                for line in stderr_reader.lines() {
-                                                    eprintln!("{}", line.unwrap());
-                                                }
-                                            }
+                                            Ok(child) => print_into_shell(child),
                                             Err(e) => {
                                                 error!("Failed to run command: {}", e)
                                             }
@@ -134,4 +108,19 @@ pub async fn watch(
     }
 
     Ok(())
+}
+
+fn print_into_shell(child: Child) {
+    let stdout = child.stdout.unwrap();
+    let stderr = child.stderr.unwrap();
+    let stdout_reader = BufReader::new(stdout);
+    let stderr_reader = BufReader::new(stderr);
+
+    for line in stdout_reader.lines() {
+        println!("{}", line.unwrap());
+    }
+
+    for line in stderr_reader.lines() {
+        eprintln!("{}", line.unwrap());
+    }
 }
