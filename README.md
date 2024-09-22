@@ -54,34 +54,45 @@ cargo install rustywatch
 
 ## Usage
 
-```shell
-rustywatch -d . -c "echo 'Files changes!'" --ignore .git --ignore ./tmp
-```
-
-- Example using with config
+To start the project just type `rustywatch`.
 
 ```shell
-# create rustywatch.yaml
-touch rustywatch.yaml
+rustywatch
 ```
 
 - Config
 
-`rustywatch.yaml`
+Create file `rustywatch.yaml` in your root directory.
+
 ```yaml
+# your path directory
 dir: "." # required
+# your command to build the project
 cmd: "go build main.go" # required
+# file you want to ignore
 ignore: # optional
   - ".git"
-bin_path: "./main" #optional but recommend
+# your path binary location
+bin_path: "./main"
+# your command arguments to run the binary
 bin_arg: # optional
   - "--args"
 ```
 
+Run the project
+
 ```shell
 # run rustywatch with config
-rustywatch --config rustywatch.yaml
+rustywatch
 ```
+
+## Help
+
+```
+rustywatch --help
+```
+
+## More examples
 
 - Example using with Rust (cargo)
 
