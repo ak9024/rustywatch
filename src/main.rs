@@ -35,7 +35,7 @@ async fn main() {
         }
         None => {
             let dir = args.dir.unwrap_or_else(|| {
-                info!("Plesae define your directory --dir <dir>");
+                info!("Please define your directory --dir <dir>");
                 ".".to_string()
             });
             let cmd = args.command.unwrap_or_else(|| {
