@@ -1,4 +1,5 @@
 use clap::Parser;
+use log::{info, warn};
 use rustywatch::{
     args::{self, Args},
     config, logger, run,
@@ -13,14 +14,9 @@ async fn main() {
 
     let args = Args::parse();
 
-    println!("{args:?}");
-
     match args.config {
         Some(cfg) => {
-            println!("{cfg:?}");
             let config = config::read_config(cfg).unwrap();
-            println!("{:#?}", config);
-
             match run(
                 config.dir,
                 config.cmd,
@@ -38,11 +34,15 @@ async fn main() {
             }
         }
         None => {
-            let dir = args.dir.unwrap_or_else(|| ".".to_string());
-            let cmd = args
-                .command
-                .unwrap_or_else(|| "echo 'file changed!'".to_string());
-            let ignore = args.ignore.unwrap_or_else(|| vec![".git".to_string()]);
+            let dir = args.dir.unwrap_or_else(|| {
+                info!("Plesae define your directory --dir <dir>");
+                ".".to_string()
+            });
+            let cmd = args.command.unwrap_or_else(|| {
+                warn!("Please define your command --cmd <your_command>");
+                "echo 'file changed!'".to_string()
+            });
+            let ignore = args.ignore;
             let bin_path = args.bin_path;
             let bin_arg = args.bin_arg;
 

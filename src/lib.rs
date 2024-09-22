@@ -9,7 +9,7 @@ use std::error::Error;
 pub async fn run(
     dir: String,
     cmd: String,
-    ignore: Vec<String>,
+    ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
 ) -> Result<(), Box<dyn Error>> {

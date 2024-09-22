@@ -18,7 +18,7 @@ use std::{
 pub async fn watch(
     dir: String,
     cmd: String,
-    ignore: Vec<String>,
+    ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
 ) -> notify::Result<()> {
@@ -29,13 +29,14 @@ pub async fn watch(
     })
     .unwrap();
 
+    let mut _ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
+
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
             info!("Waching directory: {:?}", dir);
             info!("Please make any changes to starting");
 
             let mut running_binary: Option<Child> = None;
-
             loop {
                 match rx.recv_timeout(Duration::from_secs(5)) {
                     Ok(Ok(event)) => {
@@ -44,7 +45,7 @@ pub async fn watch(
                                 let paths = event
                                     .paths
                                     .iter()
-                                    .filter(|path| !is_ignored(path, &ignore))
+                                    .filter(|path| !is_ignored(path, &_ignore))
                                     .collect::<Vec<_>>();
 
                                 if !paths.is_empty() {
