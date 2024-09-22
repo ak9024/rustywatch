@@ -54,11 +54,7 @@ cargo install rustywatch
 
 ## Usage
 
-To start the project just type `rustywatch`.
-
-```shell
-rustywatch
-```
+To start the project just type `rustywatch`, but first you need to create the config.
 
 - Config
 
