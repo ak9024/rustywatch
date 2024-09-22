@@ -149,3 +149,20 @@ fn cmd_result(child: Child) {
         eprintln!("{}", line.unwrap());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_ignored() {
+        let ignore_list = vec![".git".to_string(), "target".to_string()];
+        assert!(is_ignored(&std::path::PathBuf::from(".git"), &ignore_list));
+        assert!(is_ignored(
+            &std::path::PathBuf::from("target"),
+            &ignore_list
+        ));
+    }
+
+    // Add more tests as needed
+}
