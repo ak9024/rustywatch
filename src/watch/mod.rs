@@ -31,12 +31,22 @@ pub async fn watch(
 
     let mut _ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
 
+    let mut running_binary: Option<Child> = None;
+
+    // init for first starter
+    reload(
+        &mut running_binary,
+        bin_path.clone(),
+        cmd.clone(),
+        bin_arg.clone(),
+    )
+    .await;
+
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
             info!("Waching directory: {:?}", dir);
             info!("Please make any changes to starting");
 
-            let mut running_binary: Option<Child> = None;
             loop {
                 match rx.recv_timeout(Duration::from_secs(5)) {
                     Ok(Ok(event)) => {
@@ -51,41 +61,14 @@ pub async fn watch(
                                 if !paths.is_empty() {
                                     info!("File changed: {:?}", paths);
 
-                                    if let Some(ref mut child) = running_binary {
-                                        match child.kill() {
-                                            Ok(_) => info!("Killed the running binary"),
-                                            Err(e) => error!("Failed to kill binary: {:?}", e),
-                                        }
-                                    }
-
-                                    if let Some(bin_path) = &bin_path {
-                                        if remove(bin_path) {
-                                            if !exists(bin_path) {
-                                                match exec(cmd.clone()).await {
-                                                    Ok(child) => print_into_shell(child),
-                                                    Err(e) => {
-                                                        error!("Failed to run command: {}", e)
-                                                    }
-                                                }
-                                            }
-
-                                            running_binary =
-                                                match restart(bin_path, bin_arg.clone()) {
-                                                    Ok(child) => Some(child),
-                                                    Err(e) => {
-                                                        error!("Failed to restart binary: {:?}", e);
-                                                        None
-                                                    }
-                                                }
-                                        }
-                                    } else {
-                                        match exec(cmd.clone()).await {
-                                            Ok(child) => print_into_shell(child),
-                                            Err(e) => {
-                                                error!("Failed to run command: {}", e)
-                                            }
-                                        }
-                                    }
+                                    // second changes in loop
+                                    reload(
+                                        &mut running_binary,
+                                        bin_path.as_ref().cloned(),
+                                        cmd.clone(),
+                                        bin_arg.clone(),
+                                    )
+                                    .await;
                                 }
                             }
                         }
@@ -110,7 +93,49 @@ pub async fn watch(
     Ok(())
 }
 
-fn print_into_shell(child: Child) {
+async fn reload(
+    running_binary: &mut Option<Child>,
+    bin_path: Option<String>,
+    cmd: String,
+    bin_arg: Option<Vec<String>>,
+) {
+    if let Some(ref mut child) = running_binary {
+        match child.kill() {
+            Ok(_) => info!("Killed the running binary"),
+            Err(e) => error!("Failed to kill binary: {:?}", e),
+        }
+    }
+
+    if let Some(bin_path) = &bin_path {
+        if remove(bin_path) {
+            if !exists(bin_path) {
+                match exec(cmd.clone()).await {
+                    Ok(child) => cmd_result(child),
+                    Err(e) => {
+                        error!("Failed to run command: {}", e)
+                    }
+                }
+            }
+
+            match restart(bin_path, bin_arg.clone()) {
+                Ok(child) => *running_binary = Some(child),
+                Err(e) => {
+                    error!("Failed to restart binary: {:?}", e);
+                    *running_binary = None
+                }
+            }
+        }
+    } else {
+        match exec(cmd.clone()).await {
+            Ok(child) => cmd_result(child),
+            Err(e) => {
+                error!("Failed to run command: {}", e)
+            }
+        }
+    }
+}
+
+fn cmd_result(child: Child) {
     let stdout = child.stdout.unwrap();
     let stderr = child.stderr.unwrap();
     let stdout_reader = BufReader::new(stdout);
