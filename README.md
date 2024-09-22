@@ -14,11 +14,13 @@ Live reloading inspired by [Go Air](https://github.com/air-verse/air/tree/master
 
 ## Features
 
-- Live reloading support for all programming languages
-- Real-time reloading for binaries
-- Optimized build process
+- Universal live reloading support for all programming languages
+- Real-time binary reloading
+- Monorepo development support
+- Run multiple projects with a single command
+- Optimized and efficient build process
 - Automatic detection and monitoring of new directories
-- Enhanced, colorful log output
+- Enhanced, colorful, and detailed log output
 
 ## Install
 
@@ -37,18 +39,21 @@ To start the project just type `rustywatch`, but first you need to create the co
 Create file `rustywatch.yaml` in your root directory.
 
 ```yaml
-# your path directory
-dir: "." # required
-# your command to build the project
-cmd: "go build main.go" # required
-# file you want to ignore
-ignore: # optional
-  - ".git"
-# your path binary location
-bin_path: "./main"
-# your command arguments to run the binary
-bin_arg: # optional
-  - "--args"
+# define workspaces, rustywatch can be handled multi project at the same time.
+workspaces:
+  # first project  
+  - dir: './golang-project' # define path directory
+    cmd: 'cd ./golang-project;go build main.go' # define command to build binary
+    bin_path: './golang-projec/main' # define path for binary location
+    bin_arg: # define arguments
+     - server
+    ignore:
+     - '.git'
+  # second project
+  - dir: './rust-project/src/'
+    cmd: 'cd ./rust-project/src/;cargo build'
+    bin_path: './rust-project/target/debug/rust-project'
+  # more ...
 ```
 
 Run the project
