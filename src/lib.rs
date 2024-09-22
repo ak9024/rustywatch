@@ -13,3 +13,11 @@ pub async fn run(args: Args) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    #[tokio::test]
+    async fn test_run() {
+        // TODO: Implement test cases
+    }
+}
