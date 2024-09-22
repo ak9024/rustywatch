@@ -2,7 +2,6 @@ mod binary;
 mod command;
 mod filter;
 
-use crate::args::Args;
 use binary::{exists, remove, restart};
 use command::exec;
 use filter::is_ignored;
@@ -16,7 +15,13 @@ use std::{
     time::Duration,
 };
 
-pub async fn watch(args: Args) -> notify::Result<()> {
+pub async fn watch(
+    dir: String,
+    cmd: String,
+    ignore: Option<Vec<String>>,
+    bin_path: Option<String>,
+    bin_arg: Option<Vec<String>>,
+) -> notify::Result<()> {
     let (tx, rx) = channel();
 
     let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -24,12 +29,23 @@ pub async fn watch(args: Args) -> notify::Result<()> {
     })
     .unwrap();
 
-    match watcher.watch(args.dir.as_ref(), RecursiveMode::Recursive) {
-        Ok(_) => {
-            info!("Waching directory: {:?}", args.dir);
-            info!("Please make any changes to starting");
+    let mut _ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
 
-            let mut running_binary: Option<Child> = None;
+    let mut running_binary: Option<Child> = None;
+
+    // init for first starter
+    reload(
+        &mut running_binary,
+        bin_path.clone(),
+        cmd.clone(),
+        bin_arg.clone(),
+    )
+    .await;
+
+    match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
+        Ok(_) => {
+            info!("Waching directory: {:?}", dir);
+            info!("Please make any changes to starting");
 
             loop {
                 match rx.recv_timeout(Duration::from_secs(5)) {
@@ -39,73 +55,20 @@ pub async fn watch(args: Args) -> notify::Result<()> {
                                 let paths = event
                                     .paths
                                     .iter()
-                                    .filter(|path| !is_ignored(path, &args.ignore))
+                                    .filter(|path| !is_ignored(path, &_ignore))
                                     .collect::<Vec<_>>();
 
                                 if !paths.is_empty() {
                                     info!("File changed: {:?}", paths);
 
-                                    if let Some(ref mut child) = running_binary {
-                                        match child.kill() {
-                                            Ok(_) => info!("Killed the running binary"),
-                                            Err(e) => error!("Failed to kill binary: {:?}", e),
-                                        }
-                                    }
-
-                                    if let Some(bin_path) = &args.bin_path {
-                                        if remove(bin_path) {
-                                            if !exists(bin_path) {
-                                                match exec(args.command.clone()).await {
-                                                    Ok(child) => {
-                                                        let stdout = child.stdout.unwrap();
-                                                        let stderr = child.stderr.unwrap();
-                                                        let stdout_reader = BufReader::new(stdout);
-                                                        let stderr_reader = BufReader::new(stderr);
-
-                                                        for line in stdout_reader.lines() {
-                                                            println!("{}", line.unwrap());
-                                                        }
-
-                                                        for line in stderr_reader.lines() {
-                                                            eprintln!("{}", line.unwrap());
-                                                        }
-                                                    }
-                                                    Err(e) => {
-                                                        error!("Failed to run command: {}", e)
-                                                    }
-                                                }
-                                            }
-
-                                            running_binary =
-                                                match restart(bin_path, args.bin_arg.clone()) {
-                                                    Ok(child) => Some(child),
-                                                    Err(e) => {
-                                                        error!("Failed to restart binary: {:?}", e);
-                                                        None
-                                                    }
-                                                }
-                                        }
-                                    } else {
-                                        match exec(args.command.clone()).await {
-                                            Ok(child) => {
-                                                let stdout = child.stdout.unwrap();
-                                                let stderr = child.stderr.unwrap();
-                                                let stdout_reader = BufReader::new(stdout);
-                                                let stderr_reader = BufReader::new(stderr);
-
-                                                for line in stdout_reader.lines() {
-                                                    println!("{}", line.unwrap());
-                                                }
-
-                                                for line in stderr_reader.lines() {
-                                                    eprintln!("{}", line.unwrap());
-                                                }
-                                            }
-                                            Err(e) => {
-                                                error!("Failed to run command: {}", e)
-                                            }
-                                        }
-                                    }
+                                    // second changes in loop
+                                    reload(
+                                        &mut running_binary,
+                                        bin_path.as_ref().cloned(),
+                                        cmd.clone(),
+                                        bin_arg.clone(),
+                                    )
+                                    .await;
                                 }
                             }
                         }
@@ -128,4 +91,78 @@ pub async fn watch(args: Args) -> notify::Result<()> {
     }
 
     Ok(())
+}
+
+async fn reload(
+    running_binary: &mut Option<Child>,
+    bin_path: Option<String>,
+    cmd: String,
+    bin_arg: Option<Vec<String>>,
+) {
+    if let Some(ref mut child) = running_binary {
+        match child.kill() {
+            Ok(_) => info!("Killed the running binary"),
+            Err(e) => error!("Failed to kill binary: {:?}", e),
+        }
+    }
+
+    if let Some(bin_path) = &bin_path {
+        if remove(bin_path) {
+            if !exists(bin_path) {
+                match exec(cmd.clone()).await {
+                    Ok(child) => cmd_result(child),
+                    Err(e) => {
+                        error!("Failed to run command: {}", e)
+                    }
+                }
+            }
+
+            match restart(bin_path, bin_arg.clone()) {
+                Ok(child) => *running_binary = Some(child),
+                Err(e) => {
+                    error!("Failed to restart binary: {:?}", e);
+                    *running_binary = None
+                }
+            }
+        }
+    } else {
+        match exec(cmd.clone()).await {
+            Ok(child) => cmd_result(child),
+            Err(e) => {
+                error!("Failed to run command: {}", e)
+            }
+        }
+    }
+}
+
+fn cmd_result(child: Child) {
+    let stdout = child.stdout.unwrap();
+    let stderr = child.stderr.unwrap();
+    let stdout_reader = BufReader::new(stdout);
+    let stderr_reader = BufReader::new(stderr);
+
+    for line in stdout_reader.lines() {
+        println!("{}", line.unwrap());
+    }
+
+    for line in stderr_reader.lines() {
+        eprintln!("{}", line.unwrap());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_ignored() {
+        let ignore_list = vec![".git".to_string(), "target".to_string()];
+        assert!(is_ignored(&std::path::PathBuf::from(".git"), &ignore_list));
+        assert!(is_ignored(
+            &std::path::PathBuf::from("target"),
+            &ignore_list
+        ));
+    }
+
+    // Add more tests as needed
 }

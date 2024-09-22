@@ -2,13 +2,23 @@ use std::process::{Child, Stdio};
 
 pub async fn exec(cmd: String) -> Result<Child, Box<dyn std::error::Error>> {
     let output = tokio::task::spawn_blocking(move || {
-        std::process::Command::new("sh")
-            .arg("-c")
-            .arg(cmd)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap()
+        if cfg!(windows) {
+            std::process::Command::new("cmd")
+                .arg("/C")
+                .arg(cmd)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap()
+        } else {
+            std::process::Command::new("sh")
+                .arg("-c")
+                .arg(cmd)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap()
+        }
     })
     .await?;
 

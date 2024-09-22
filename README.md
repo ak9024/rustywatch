@@ -58,6 +58,31 @@ cargo install rustywatch
 rustywatch -d . -c "echo 'Files changes!'" --ignore .git --ignore ./tmp
 ```
 
+- Example using with config
+
+```shell
+# create rustywatch.yaml
+touch rustywatch.yaml
+```
+
+- Config
+
+`rustywatch.yaml`
+```
+dir: "." # required
+cmd: "go build main.go" # required
+ignore: # optional
+  - ".git"
+bin_path: "./main" #optional but recommend
+bin_arg: # optional
+  - "--args"
+```
+
+```shell
+# run rustywatch with config
+rustywatch --config rustywatch.yaml
+```
+
 - Example using with Rust (cargo)
 
 ```shell
@@ -108,6 +133,14 @@ vim index.js
 # then the project will be running with hot reload
 rustywatch -d . -c 'node index.js' --ignore '.tmp' --ignore '.git'
 ```
+
+## Support languages
+
+- NodeJS
+- Go
+- Rust
+- Javascript
+- (more) Need to testing
 
 ## Star History
 
