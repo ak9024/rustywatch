@@ -78,7 +78,6 @@ bin_arg: # optional
 Run the project
 
 ```shell
-# run rustywatch with config
 rustywatch
 ```
 
