@@ -68,7 +68,7 @@ touch rustywatch.yaml
 - Config
 
 `rustywatch.yaml`
-```
+```yaml
 dir: "." # required
 cmd: "go build main.go" # required
 ignore: # optional

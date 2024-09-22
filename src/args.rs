@@ -35,8 +35,8 @@ pub struct Args {
     #[arg(short = 'a', long)]
     pub bin_arg: Option<Vec<String>>,
 
-    #[arg(long)]
-    pub config: Option<String>,
+    #[arg(long = "cfg", default_value_t = String::from("rustywatch.yaml"))]
+    pub config: String,
 }
 
 #[cfg(test)]
@@ -51,7 +51,7 @@ mod tests {
             ignore: Some(vec![String::from(".git")]),
             bin_path: None,
             bin_arg: Some(vec![String::from("server")]),
-            config: Some(String::from("rustywatch.yaml")),
+            config: String::from("rustywatch.yaml"),
         };
 
         assert_eq!(args.dir.unwrap(), "/test/dir");
@@ -72,6 +72,6 @@ mod tests {
             None => {}
         }
 
-        assert_eq!(args.config.unwrap(), String::from("rustywatch.yaml"))
+        assert_eq!(args.config, String::from("rustywatch.yaml"))
     }
 }
