@@ -2,7 +2,6 @@ mod binary;
 mod command;
 mod filter;
 
-use crate::args::Args;
 use binary::{exists, remove, restart};
 use command::exec;
 use filter::is_ignored;
@@ -16,7 +15,13 @@ use std::{
     time::Duration,
 };
 
-pub async fn watch(args: Args) -> notify::Result<()> {
+pub async fn watch(
+    dir: String,
+    cmd: String,
+    ignore: Vec<String>,
+    bin_path: Option<String>,
+    bin_arg: Option<Vec<String>>,
+) -> notify::Result<()> {
     let (tx, rx) = channel();
 
     let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -24,9 +29,9 @@ pub async fn watch(args: Args) -> notify::Result<()> {
     })
     .unwrap();
 
-    match watcher.watch(args.dir.as_ref(), RecursiveMode::Recursive) {
+    match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
-            info!("Waching directory: {:?}", args.dir);
+            info!("Waching directory: {:?}", dir);
             info!("Please make any changes to starting");
 
             let mut running_binary: Option<Child> = None;
@@ -39,7 +44,7 @@ pub async fn watch(args: Args) -> notify::Result<()> {
                                 let paths = event
                                     .paths
                                     .iter()
-                                    .filter(|path| !is_ignored(path, &args.ignore))
+                                    .filter(|path| !is_ignored(path, &ignore))
                                     .collect::<Vec<_>>();
 
                                 if !paths.is_empty() {
@@ -52,10 +57,10 @@ pub async fn watch(args: Args) -> notify::Result<()> {
                                         }
                                     }
 
-                                    if let Some(bin_path) = &args.bin_path {
+                                    if let Some(bin_path) = &bin_path {
                                         if remove(bin_path) {
                                             if !exists(bin_path) {
-                                                match exec(args.command.clone()).await {
+                                                match exec(cmd.clone()).await {
                                                     Ok(child) => {
                                                         let stdout = child.stdout.unwrap();
                                                         let stderr = child.stderr.unwrap();
@@ -77,7 +82,7 @@ pub async fn watch(args: Args) -> notify::Result<()> {
                                             }
 
                                             running_binary =
-                                                match restart(bin_path, args.bin_arg.clone()) {
+                                                match restart(bin_path, bin_arg.clone()) {
                                                     Ok(child) => Some(child),
                                                     Err(e) => {
                                                         error!("Failed to restart binary: {:?}", e);
@@ -86,7 +91,7 @@ pub async fn watch(args: Args) -> notify::Result<()> {
                                                 }
                                         }
                                     } else {
-                                        match exec(args.command.clone()).await {
+                                        match exec(cmd.clone()).await {
                                             Ok(child) => {
                                                 let stdout = child.stdout.unwrap();
                                                 let stderr = child.stderr.unwrap();

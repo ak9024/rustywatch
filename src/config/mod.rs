@@ -7,8 +7,8 @@ pub struct Config {
     pub dir: String,
     pub cmd: String,
     pub ignore: Vec<String>,
-    pub bin_path: String,
-    pub bin_arg: Vec<String>,
+    pub bin_path: Option<String>,
+    pub bin_arg: Option<Vec<String>>,
 }
 
 pub fn read_config(path: String) -> Result<Config, std::io::Error> {
@@ -40,7 +40,7 @@ bin_arg:
         assert_eq!(config.dir, "/path/to/directory");
         assert_eq!(config.cmd, "some_command");
         assert_eq!(config.ignore, vec!["file1.txt", "file2.txt"]);
-        assert_eq!(config.bin_path, "/usr/local/bin/executable");
-        assert_eq!(config.bin_arg, vec!["--arg1", "--arg2"]);
+        assert_eq!(config.bin_path.unwrap(), "/usr/local/bin/executable");
+        assert_eq!(config.bin_arg.unwrap(), vec!["--arg1", "--arg2"]);
     }
 }
