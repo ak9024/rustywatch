@@ -7,7 +7,7 @@ use log::error;
 use std::error::Error;
 
 pub async fn run(args: Args) -> Result<(), Box<dyn Error>> {
-    if let Err(err) = watch::watch_dir(args).await {
+    if let Err(err) = watch::watch(args).await {
         error!("Error watching directory: {:?}", err)
     }
 
