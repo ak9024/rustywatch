@@ -14,13 +14,13 @@ Live reloading inspired by [Go Air](https://github.com/air-verse/air/tree/master
 
 ## Features
 
-- Live reloading support for all programming languages
-- Real-time reloading for binaries
-- Support monorepo development
-- Run many projects in one commands
-- Optimized build process
+- Universal live reloading support for all programming languages
+- Real-time binary reloading
+- Monorepo development support
+- Run multiple projects with a single command
+- Optimized and efficient build process
 - Automatic detection and monitoring of new directories
-- Enhanced, colorful log output
+- Enhanced, colorful, and detailed log output
 
 ## Install
 
@@ -39,7 +39,7 @@ To start the project just type `rustywatch`, but first you need to create the co
 Create file `rustywatch.yaml` in your root directory.
 
 ```yaml
-# define workspaces, rustywatch can be handled mutli project at the same time.
+# define workspaces, rustywatch can be handled multi project at the same time.
 workspaces:
   # first project  
   - dir: './golang-project' # define path directory
