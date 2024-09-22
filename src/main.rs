@@ -1,5 +1,6 @@
 use clap::Parser;
-use log::{info, warn};
+use futures::future::join_all;
+use log::{error, info, warn};
 use rustywatch::{
     args::{self, Args},
     config, logger, run,
@@ -30,26 +31,41 @@ async fn main() {
         match run(dir, cmd, ignore, bin_path, bin_arg).await {
             Ok(_) => process::exit(0),
             Err(e) => {
-                eprintln!("{e}");
+                error!("{e}");
                 process::exit(1)
             }
         }
     } else {
         let config = config::read_config(args.config).unwrap();
-        match run(
-            config.dir,
-            config.cmd,
-            config.ignore,
-            config.bin_path,
-            config.bin_arg,
-        )
-        .await
-        {
-            Ok(_) => process::exit(0),
-            Err(e) => {
-                eprintln!("{e}");
-                process::exit(1)
+
+        let tasks: Vec<_> = config
+            .workspaces
+            .into_iter()
+            .map(|workspace| {
+                tokio::spawn(async {
+                    run(
+                        workspace.dir,
+                        workspace.cmd,
+                        workspace.ignore,
+                        workspace.bin_path,
+                        workspace.bin_arg,
+                    )
+                    .await
+                })
+            })
+            .collect();
+
+        let results = join_all(tasks).await;
+
+        for result in results {
+            match result {
+                Ok(_) => continue,
+                Err(e) => {
+                    error!("Task panicked: {}", e);
+                    process::exit(1);
+                }
             }
         }
+        process::exit(0)
     }
 }

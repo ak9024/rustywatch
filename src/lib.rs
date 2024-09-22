@@ -12,7 +12,7 @@ pub async fn run(
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<dyn Error + Send>> {
     if let Err(err) = watch::watch(dir, cmd, ignore, bin_path, bin_arg).await {
         error!("Error watching directory: {:?}", err)
     }
