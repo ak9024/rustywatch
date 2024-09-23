@@ -1,9 +1,19 @@
 [package]
 name = "rustywatch"
+authors = ["Adiatma Kamarudin <adiatma.mail@gmail.com>"]
+rust-version = "1.81.0"
 description = "Live reloading for any programing languages"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/ak9024/rustywatch"
+keywords = ["command-line-utilities", "cli"]
+include = [
+  "src/**/*",
+  "Cargo.*",
+  "LICENSE*",
+  "README.md",
+]
 
 [dependencies]
 clap = { version = "4.5.17", features = ["derive"] }
@@ -15,5 +25,18 @@ serde = { version = "1.0.210", features = ["derive"] }
 serde_yaml = "0.9.34"
 tokio = { version = "1.40.0", features = ["full"] }
 
+[profile.dev]
+opt-level = 0
+debug = true
+panic = "abort"
+
+[profile.test]
+opt-level = 0
+debug = true
+
 [profile.release]
+opt-level = 3
+debug = false
+panic = "unwind"
+lto = true
 strip = true

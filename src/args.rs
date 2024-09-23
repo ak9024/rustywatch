@@ -9,7 +9,7 @@ const TITLE: &str = r#"
 ╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
 ╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯"#;
-const VERSION: &str = "v0.2.0";
+const VERSION: &str = "v0.2.1";
 
 pub fn title() {
     println!("{}", TITLE);
