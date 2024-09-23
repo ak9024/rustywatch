@@ -32,16 +32,16 @@ cargo install rustywatch
 
 ## Usage
 
-To start the project just type `rustywatch`, but first you need to create the config.
+To start the project with `rustywatch` just need `rustywatch.yaml` for configuration, and run the CLI in root your project.
 
 - Config
 
-Create file `rustywatch.yaml` in your root directory.
+Default configuration named `rustywatch.yaml` with yaml extention, and please put the config in your root directory, for reference please check at bellow:
 
 ```yaml
 # define workspaces, rustywatch can be handled multi project at the same time.
 workspaces:
-  # first project  
+  # first project binary apps
   - dir: './golang-project' # define path directory
     cmd: 'cd ./golang-project;go build main.go' # define command to build binary
     bin_path: './golang-projec/main' # define path for binary location
@@ -49,11 +49,37 @@ workspaces:
      - server
     ignore:
      - '.git'
-  # second project
+  # second project binary apps
   - dir: './rust-project/src/'
     cmd: 'cd ./rust-project/src/;cargo build'
     bin_path: './rust-project/target/debug/rust-project'
+  # third project not binary apps
+  - dir: './nodejs-project'
+    cmd: 'cd nodejs-project;npm run dev'
   # more ...
+```
+
+Example structure directories
+
+```shell
+# list directories
+ls 
+.
+└── your-project/
+    ├── go-project/
+    │   ├── go.mod
+    │   ├── go.sum
+    │   └── main.go
+    ├── rust-project/
+    │   ├── src/
+    │   │   └── main.rs
+    │   ├── Cargo.toml
+    │   └── Cargo.lock
+    ├── nodejs-project/
+    │   ├── index.js
+    │   ├── package.json
+    │   └── package-lock.json
+    └── rustywatch.yaml (config here)
 ```
 
 Run the project
@@ -74,7 +100,7 @@ rustywatch --help
 - Go
 - Rust
 - Javascript
-- (more) Need to testing
+- (more)
 
 ## Star History
 
