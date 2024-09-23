@@ -36,7 +36,7 @@ To start the project with `rustywatch` just need `rustywatch.yaml` for configura
 
 - Config
 
-Default configuration named `rustywatch.yaml` with yaml extention, and please put the config in your root directory, for reference please check at bellow:
+Default configuration named `rustywatch.yaml` with `yaml` extension, and please put the config in your root directory, for reference please check at bellow:
 
 ```yaml
 # define workspaces, rustywatch can be handled multi project at the same time.
