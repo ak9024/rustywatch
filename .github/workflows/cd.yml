@@ -97,12 +97,12 @@ jobs:
           #     TARGET: x86_64-apple-darwin,
           #     ALL_FEATURES: true,
           #   }
-          - {
-              OS: macos-14,
-              TOOLCHAIN: stable,
-              TARGET: stable-aarch64-apple-darwin,
-              ALL_FEATURES: true,
-            }
+          # - {
+          #     OS: macos-14,
+          #     TOOLCHAIN: stable,
+          #     TARGET: stable-aarch64-apple-darwin,
+          #     ALL_FEATURES: true,
+          #   }
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
