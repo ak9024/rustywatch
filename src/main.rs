@@ -38,23 +38,19 @@ async fn main() {
     } else {
         let config = config::read_config(args.config).unwrap();
 
-        let tasks: Vec<_> = config
-            .workspaces
-            .into_iter()
-            .map(|workspace| {
-                tokio::spawn(async {
-                    run(
-                        workspace.dir,
-                        workspace.cmd,
-                        workspace.ignore,
-                        workspace.bin_path,
-                        workspace.bin_arg,
-                        false,
-                    )
-                    .await
-                })
+        let tasks = config.workspaces.into_iter().map(|workspace| {
+            tokio::spawn(async move {
+                run(
+                    workspace.dir,
+                    workspace.cmd,
+                    workspace.ignore,
+                    workspace.bin_path,
+                    workspace.bin_arg,
+                    false,
+                )
+                .await
             })
-            .collect();
+        });
 
         let results = join_all(tasks).await;
 

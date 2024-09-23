@@ -652,7 +652,7 @@ dependencies = [
 
 [[package]]
 name = "rustywatch"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "clap",
  "env_logger",
