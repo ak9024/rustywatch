@@ -9,16 +9,26 @@ const TITLE: &str = r#"
 ╰╯╰━┻━━┻━━┻━┻━╮╭╯╰╯╰╯╰╯╰┻━┻━━┻╯╰╯
 ╱╱╱╱╱╱╱╱╱╱╱╱╭━╯┃
 ╱╱╱╱╱╱╱╱╱╱╱╱╰━━╯"#;
-const VERSION: &str = "v0.2.1";
 
 pub fn title() {
     println!("{}", TITLE);
-    println!("version: {}", VERSION);
-    println!("\n");
 }
 
 #[derive(Parser, Debug)]
-#[command(version = VERSION, about, long_about = None)]
+#[clap(
+    version,
+    author = clap::crate_authors!("\n"),
+    about,
+    rename_all_env = "screaming-snake",
+    help_template = "\
+{before-help}{name} {version}
+{author-with-newline}{about-with-newline}
+{usage-heading}
+  {usage}
+
+{all-args}{after-help}
+",
+)]
 pub struct Args {
     #[arg(short = 'd', long = "dir", default_value = ".")]
     pub dir: Option<String>,

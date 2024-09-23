@@ -45,8 +45,6 @@ pub async fn watch(
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
             info!("Waching directory: {:?}", dir);
-            info!("Please make any changes to starting");
-
             loop {
                 match rx.recv_timeout(Duration::from_secs(5)) {
                     Ok(Ok(event)) => {
@@ -136,18 +134,21 @@ async fn reload(
 }
 
 fn cmd_result(child: Child) {
+    macro_rules! process_output {
+        ($reader:expr, $print_fn:ident) => {
+            for line in $reader.lines() {
+                $print_fn!("{}", line.unwrap());
+            }
+        };
+    }
+
     let stdout = child.stdout.unwrap();
     let stderr = child.stderr.unwrap();
     let stdout_reader = BufReader::new(stdout);
     let stderr_reader = BufReader::new(stderr);
 
-    for line in stdout_reader.lines() {
-        println!("{}", line.unwrap());
-    }
-
-    for line in stderr_reader.lines() {
-        eprintln!("{}", line.unwrap());
-    }
+    process_output!(stdout_reader, println);
+    process_output!(stderr_reader, eprintln);
 }
 
 #[cfg(test)]
