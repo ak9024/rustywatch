@@ -6,6 +6,7 @@ use rustywatch::{
     config, logger, run,
 };
 use std::{path::Path, process};
+use validator::Validate;
 
 #[tokio::main]
 async fn main() {
@@ -36,37 +37,50 @@ async fn main() {
             }
         }
     } else {
-        let config = config::read_config(args.config).unwrap();
+        match config::read_config(args.config) {
+            Ok(config) => match config.validate() {
+                Ok(_) => {
+                    let tasks = config.workspaces.into_iter().map(|workspace| {
+                        tokio::spawn(async move {
+                            run(
+                                workspace.dir,
+                                workspace.cmd,
+                                workspace.ignore,
+                                workspace.bin_path,
+                                workspace.bin_arg,
+                                false,
+                            )
+                            .await
+                        })
+                    });
 
-        let tasks: Vec<_> = config
-            .workspaces
-            .into_iter()
-            .map(|workspace| {
-                tokio::spawn(async {
-                    run(
-                        workspace.dir,
-                        workspace.cmd,
-                        workspace.ignore,
-                        workspace.bin_path,
-                        workspace.bin_arg,
-                        false,
-                    )
-                    .await
-                })
-            })
-            .collect();
+                    let results = join_all(tasks).await;
 
-        let results = join_all(tasks).await;
+                    for result in results {
+                        match result {
+                            Ok(Ok(_)) => continue,
+                            Ok(Err(e)) => {
+                                error!("Task failed: {}", e);
+                                process::exit(1);
+                            }
+                            Err(e) => {
+                                error!("Task panicked: {}", e);
+                                process::exit(1);
+                            }
+                        }
+                    }
 
-        for result in results {
-            match result {
-                Ok(_) => continue,
+                    process::exit(0)
+                }
                 Err(e) => {
-                    error!("Task panicked: {}", e);
+                    error!("Config validation failed: {}", e);
                     process::exit(1);
                 }
+            },
+
+            Err(e) => {
+                error!("Missing field workspaces at your config: {}", e)
             }
-        }
-        process::exit(0)
+        };
     }
 }
