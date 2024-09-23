@@ -34,7 +34,7 @@ cargo install rustywatch
 
 To start the project with `rustywatch` just need `rustywatch.yaml` for configuration, and run the CLI in root your project.
 
-- Config
+### configuration
 
 Default configuration named `rustywatch.yaml` with `yaml` extension, and please put the config in your root directory, for reference please check at bellow:
 
@@ -59,7 +59,7 @@ workspaces:
   # more ...
 ```
 
-Example structure directories
+### Example structure directories
 
 ```shell
 # list directories
@@ -82,7 +82,7 @@ ls
     └── rustywatch.yaml (config here)
 ```
 
-Run the project
+### Run the project
 
 ```shell
 rustywatch

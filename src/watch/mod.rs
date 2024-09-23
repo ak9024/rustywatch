@@ -154,15 +154,49 @@ fn cmd_result(child: Child) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
+    use tempfile::tempdir;
 
     #[test]
     fn test_is_ignored() {
         let ignore_list = vec![".git".to_string(), "target".to_string()];
-        assert!(is_ignored(&std::path::PathBuf::from(".git"), &ignore_list));
-        assert!(is_ignored(
-            &std::path::PathBuf::from("target"),
-            &ignore_list
-        ));
+        assert!(is_ignored(&PathBuf::from(".git"), &ignore_list));
+        assert!(is_ignored(&PathBuf::from("target"), &ignore_list));
+        assert!(!is_ignored(&PathBuf::from("src"), &ignore_list));
+    }
+
+    #[tokio::test]
+    async fn test_reload_without_bin_path() {
+        let mut running_binary = None;
+        let cmd = "echo 'Hello, World!'".to_string();
+
+        reload(&mut running_binary, None, cmd.clone(), None).await;
+
+        // Assert that running_binary is still None after reload
+        assert!(running_binary.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_watch_timeout() {
+        let dir = tempdir().unwrap();
+        let cmd = "echo 'Test'".to_string();
+
+        let handle = tokio::spawn(async move {
+            watch(
+                dir.path().to_str().unwrap().to_string(),
+                cmd,
+                None,
+                None,
+                None,
+            )
+            .await
+        });
+
+        // Cancel the task (simulating a timeout)
+        handle.abort();
+
+        let result = handle.await;
+        assert!(result.is_err());
     }
 
     // Add more tests as needed

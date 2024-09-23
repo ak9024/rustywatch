@@ -28,7 +28,7 @@ async fn main() {
         let bin_path = args.bin_path;
         let bin_arg = args.bin_arg;
 
-        match run(dir, cmd, ignore, bin_path, bin_arg).await {
+        match run(dir, cmd, ignore, bin_path, bin_arg, false).await {
             Ok(_) => process::exit(0),
             Err(e) => {
                 error!("{e}");
@@ -49,6 +49,7 @@ async fn main() {
                         workspace.ignore,
                         workspace.bin_path,
                         workspace.bin_arg,
+                        false,
                     )
                     .await
                 })
