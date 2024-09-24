@@ -15,9 +15,11 @@ use std::{
     time::Duration,
 };
 
+use crate::config::CommandType;
+
 pub async fn watch(
     dir: String,
-    cmd: String,
+    cmd: CommandType,
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
@@ -94,7 +96,7 @@ pub async fn watch(
 async fn reload(
     running_binary: &mut Option<Child>,
     bin_path: Option<String>,
-    cmd: String,
+    cmd: CommandType,
     bin_arg: Option<Vec<String>>,
 ) {
     if let Some(ref mut child) = running_binary {
@@ -107,12 +109,24 @@ async fn reload(
     if let Some(bin_path) = &bin_path {
         if remove(bin_path) {
             if !exists(bin_path) {
-                match exec(cmd.clone()).await {
-                    Ok(child) => cmd_result(child),
-                    Err(e) => {
-                        error!("Failed to run command: {}", e)
+                match cmd {
+                    CommandType::Single(cmd) => match exec(cmd.clone()).await {
+                        Ok(child) => cmd_result(child),
+                        Err(e) => {
+                            error!("Failed to run command: {}", e)
+                        }
+                    },
+                    CommandType::Multiple(cmds) => {
+                        for cmd in cmds {
+                            match exec(cmd.clone()).await {
+                                Ok(child) => cmd_result(child),
+                                Err(e) => {
+                                    error!("Failed to run command: {}", e)
+                                }
+                            }
+                        }
                     }
-                }
+                };
             }
 
             match restart(bin_path, bin_arg.clone()) {
@@ -124,10 +138,22 @@ async fn reload(
             }
         }
     } else {
-        match exec(cmd.clone()).await {
-            Ok(child) => cmd_result(child),
-            Err(e) => {
-                error!("Failed to run command: {}", e)
+        match cmd {
+            CommandType::Single(cmd) => match exec(cmd.clone()).await {
+                Ok(child) => cmd_result(child),
+                Err(e) => {
+                    error!("Failed to run command: {}", e)
+                }
+            },
+            CommandType::Multiple(cmds) => {
+                for cmd in cmds {
+                    match exec(cmd.clone()).await {
+                        Ok(child) => cmd_result(child),
+                        Err(e) => {
+                            error!("Failed to run command: {}", e)
+                        }
+                    }
+                }
             }
         }
     }
@@ -154,6 +180,7 @@ fn cmd_result(child: Child) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::CommandType;
     use std::path::PathBuf;
     use tempfile::tempdir;
 
@@ -168,8 +195,7 @@ mod tests {
     #[tokio::test]
     async fn test_reload_without_bin_path() {
         let mut running_binary = None;
-        let cmd = "echo 'Hello, World!'".to_string();
-
+        let cmd = CommandType::Single("echo 'Hello, World!'".to_string());
         reload(&mut running_binary, None, cmd.clone(), None).await;
 
         // Assert that running_binary is still None after reload
@@ -179,7 +205,7 @@ mod tests {
     #[tokio::test]
     async fn test_watch_timeout() {
         let dir = tempdir().unwrap();
-        let cmd = "echo 'Test'".to_string();
+        let cmd = CommandType::Single("echo 'Test'".to_string());
 
         let handle = tokio::spawn(async move {
             watch(

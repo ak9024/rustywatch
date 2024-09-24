@@ -34,32 +34,34 @@ cargo install rustywatch
 
 To start the project with `rustywatch` just need `rustywatch.yaml` for configuration, and run the CLI in root your project.
 
-### configuration
+### Configuration
 
-Default configuration named `rustywatch.yaml` with `yaml` extension, and please put the config in your root directory, for reference please check at bellow:
+Default configuration named `rustywatch.yaml`, and please put the config in your root directory, for reference please check at bellow:
 
 ```yaml
 # define workspaces, rustywatch can be handled multi project at the same time.
 workspaces:
   # first project binary apps
-  - dir: './golang-project' # define path directory
-    cmd: 'cd ./golang-project;go build main.go' # define command to build binary
+  - dir: 'golang-project' # define path directory
+    cmd: # define command to build binary
+    - 'cd ./golang-project
+    - go build main.go' 
     bin_path: './golang-projec/main' # define path for binary location
     bin_arg: # define arguments
      - server
     ignore:
      - '.git'
   # second project binary apps
-  - dir: './rust-project/src/'
-    cmd: 'cd ./rust-project/src/;cargo build'
+  - dir: 'rust-project'
+    cmd:
+    - 'cd ./rust-project
+    - cargo build
     bin_path: './rust-project/target/debug/rust-project'
   # third project not binary apps
-  - dir: './nodejs-project'
+  - dir: 'nodejs-project'
     cmd: 'cd nodejs-project;npm run dev'
   # more ...
 ```
-
-### Example structure directories
 
 ```shell
 # list directories
