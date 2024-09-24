@@ -3,12 +3,13 @@ pub mod config;
 pub mod logger;
 pub mod watch;
 
+use config::CommandType;
 use log::error;
 use std::{error::Error, process};
 
 pub async fn run(
     dir: String,
-    cmd: String,
+    cmd: CommandType,
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
@@ -28,6 +29,8 @@ pub async fn run(
 
 #[cfg(test)]
 mod tests {
+    use crate::config::CommandType;
+
     #[tokio::test]
     async fn test_run() {
         use tempfile::tempdir;
@@ -37,7 +40,7 @@ mod tests {
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
 
         // Test parameters
-        let cmd = "echo 'File changed'".to_string();
+        let cmd = CommandType::Single("echo 'File changed'".to_string());
         let ignore = Some(vec!["*.tmp".to_string()]);
         let bin_path = Some("/usr/bin/echo".to_string());
         let bin_arg = Some(vec!["Hello".to_string()]);

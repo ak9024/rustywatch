@@ -1,9 +1,10 @@
 use clap::Parser;
 use futures::future::join_all;
-use log::{error, info, warn};
+use log::{error, info};
 use rustywatch::{
     args::{self, Args},
-    config, logger, run,
+    config::{self, CommandType},
+    logger, run,
 };
 use std::{path::Path, process};
 use validator::Validate;
@@ -21,10 +22,7 @@ async fn main() {
             info!("Please define your directory --dir <dir>");
             ".".to_string()
         });
-        let cmd = args.command.unwrap_or_else(|| {
-            warn!("Please define your command --cmd <your_command>");
-            "echo 'file changed!'".to_string()
-        });
+        let cmd = CommandType::Single("echo 'File changed!'".to_string());
         let ignore = args.ignore;
         let bin_path = args.bin_path;
         let bin_arg = args.bin_arg;
