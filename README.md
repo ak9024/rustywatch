@@ -46,7 +46,7 @@ workspaces:
     cmd: # define command to build binary
     - cp ./golang-project/.env .env
     - |
-      cd ./golang-projec
+      cd ./golang-project;
       go build main.go
     bin_path: './golang-projec/main' # define path for binary location
     bin_arg: # define arguments
