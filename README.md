@@ -60,7 +60,7 @@ workspaces:
       cd ./rust-project;
       cargo build
     bin_path: './rust-project/target/debug/rust-project'
-  # third project not binary apps
+  # third project non binary apps
   - dir: 'nodejs-project'
     cmd: 'cd nodejs-project;npm run dev'
   # more ...
