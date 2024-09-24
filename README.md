@@ -44,8 +44,8 @@ workspaces:
   # first project binary apps
   - dir: 'golang-project' # define path directory
     cmd: # define command to build binary
-    - 'cd ./golang-project
-    - go build main.go' 
+    - cd ./golang-project
+    - go build main.go
     bin_path: './golang-projec/main' # define path for binary location
     bin_arg: # define arguments
      - server
@@ -54,7 +54,7 @@ workspaces:
   # second project binary apps
   - dir: 'rust-project'
     cmd:
-    - 'cd ./rust-project
+    - cd ./rust-project
     - cargo build
     bin_path: './rust-project/target/debug/rust-project'
   # third project not binary apps
