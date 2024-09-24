@@ -36,7 +36,7 @@ pub fn restart(binary_path: &str, cmd_arg: Option<Vec<String>>) -> Result<Child,
                 Ok(child)
             }
             Err(e) => {
-                error!("Failed to restart: {:#?}", e);
+                error!("Failed to restart: {:?}", e);
                 Err(e)
             }
         },
@@ -46,7 +46,7 @@ pub fn restart(binary_path: &str, cmd_arg: Option<Vec<String>>) -> Result<Child,
                 Ok(child)
             }
             Err(e) => {
-                error!("Failed to restart: {:#?}", e);
+                error!("Failed to restart: {:?}", e);
                 Err(e)
             }
         },
