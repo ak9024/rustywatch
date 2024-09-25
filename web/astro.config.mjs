@@ -12,11 +12,15 @@ export default defineConfig({
       },
       sidebar: [
         {
-          label: 'Getting Started',
+          label: 'Guides',
           items: [
             // Each item here is one entry in the navigation menu.
-            { label: 'Getting Started', slug: 'guides/guides' },
+            { label: 'Guides', slug: 'guides/guides' },
           ],
+        },
+        {
+          label: 'Examples',
+          autogenerate: { directory: 'examples' },
         },
         {
           label: 'Reference',

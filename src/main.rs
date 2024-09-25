@@ -22,7 +22,7 @@ async fn main() {
             info!("Please define your directory --dir <dir>");
             ".".to_string()
         });
-        let cmd = CommandType::Single("echo 'File changed!'".to_string());
+        let cmd = CommandType::Single(args.command.unwrap().to_string());
         let ignore = args.ignore;
         let bin_path = args.bin_path;
         let bin_arg = args.bin_arg;
