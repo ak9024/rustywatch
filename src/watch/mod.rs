@@ -35,7 +35,6 @@ pub async fn watch(
 
     let mut running_binary: Option<Child> = None;
 
-    // init for first starter
     reload(
         &mut running_binary,
         bin_path.clone(),
@@ -61,7 +60,6 @@ pub async fn watch(
                                 if !paths.is_empty() {
                                     info!("File changed: {:?}", paths);
 
-                                    // second changes in loop
                                     reload(
                                         &mut running_binary,
                                         bin_path.as_ref().cloned(),
@@ -224,6 +222,4 @@ mod tests {
         let result = handle.await;
         assert!(result.is_err());
     }
-
-    // Add more tests as needed
 }

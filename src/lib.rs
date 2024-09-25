@@ -5,7 +5,7 @@ pub mod watch;
 
 use config::CommandType;
 use log::error;
-use std::{error::Error, process};
+use std::error::Error;
 
 pub async fn run(
     dir: String,
@@ -13,15 +13,11 @@ pub async fn run(
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
-    test: bool,
 ) -> Result<(), Box<dyn Error + Send>> {
-    // for testing to prevent blocking
-    if test {
-        process::exit(0)
-    }
-
-    if let Err(err) = watch::watch(dir, cmd, ignore, bin_path, bin_arg).await {
-        error!("Error watching directory: {:?}", err)
+    if cfg!(not(test)) {
+        if let Err(err) = watch::watch(dir, cmd, ignore, bin_path, bin_arg).await {
+            error!("Error watching directory: {:?}", err)
+        }
     }
 
     Ok(())
@@ -46,7 +42,7 @@ mod tests {
         let bin_arg = Some(vec!["Hello".to_string()]);
 
         // Run the function
-        let result = super::run(dir_path, cmd, ignore, bin_path, bin_arg, true).await;
+        let result = super::run(dir_path, cmd, ignore, bin_path, bin_arg).await;
 
         // Assert that the function returns Ok(())
         assert!(result.is_ok());
