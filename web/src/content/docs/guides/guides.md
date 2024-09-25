@@ -1,6 +1,6 @@
 ---
-title: Quickstart
-description: Quickstart page.
+title: Guides
+description: Guides page.
 ---
 
 ## Install

@@ -11,7 +11,7 @@ rustywatch -h
 
 | Options    | Description                                                               | Type     |
 |------------|---------------------------------------------------------------------------|----------|
-| --dir      | Config directory, all directory set in here will be listen in RustyWatch. | `string` |
+| --dir      | Config directory will be listen in RustyWatch.                            | `string` |
 | --cmd      | All commands can be defined in here.                                      | `string` |
 | --bin_path | Path directory to execute, this field will be call after `cmd`            | `string` |
 | --bin_arg  | If your binary need more arguments, can be set in here.                   | `array`  |
@@ -38,7 +38,7 @@ All field under `workspaces` are using `array`:
 
 | Field    | Description                                                               | Type            |
 |----------|---------------------------------------------------------------------------|-----------------|
-| dir      | Config directory, all directory set in here will be listen in RustyWatch. | `string`        |
+| dir      | Config directory will be listen in RustyWatch.                            | `string`        |
 | cmd      | All commands can be defined in here.                                      | `string\|array` |
 | bin_path | Path directory to execute, this field will be call after `cmd`            | `string`        |
 | bin_arg  | If your binary need more arguments, can be set in here.                   | `array`         |
