@@ -8,19 +8,21 @@
 ![Crates.io Version](https://img.shields.io/crates/v/rustywatch) 
 ![Codecov](https://img.shields.io/codecov/c/github/ak9024/rustywatch)
 
-[![asciicast](https://asciinema.org/a/677076.svg)](https://asciinema.org/a/677076)
+[![asciicast](https://asciinema.org/a/677470.svg)](https://asciinema.org/a/677470)
 
-Live reloading inspired by [Go Air](https://github.com/air-verse/air/tree/master) build with Rust.
+## Live Reloading Built with Rust
+
+Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powerful live reloading capabilities designed for developers working across various programming languages.
 
 ## Features
 
-- Universal live reloading support for all programming languages
-- Real-time binary reloading
-- Monorepo development support
-- Run multiple projects with a single command
-- Optimized and efficient build process
-- Automatic detection and monitoring of new directories
-- Enhanced, colorful, and detailed log output
+- Universal Live Reloading: Seamlessly supports live reloading for any programming language.
+- Real-time Binary Reloading: Automatically reloads your binaries in real-time.
+- Monorepo Development Support: Effortlessly manage monorepo projects with built-in support.
+- Multi-Project Execution: Run multiple projects concurrently with a single command.
+- Optimized Build Process: Efficient and highly optimized for faster builds and reloading.
+- Automatic Directory Monitoring: Detects and tracks new directories without manual intervention.
+- Enhanced Logging: Enjoy colorful and detailed log outputs for easier debugging and monitoring.
 
 ## Install
 
@@ -32,11 +34,12 @@ cargo install rustywatch
 
 ## Usage
 
-To start the project with `rustywatch` just need `rustywatch.yaml` for configuration, and run the CLI in root your project.
+To start the project, ensure you have a `rustywatch.yaml` configuration file in the root directory of your project. Then, run the CLI from the root directory to launch RustyWatch.
 
-### Configuration
+## Configuration
 
-Default configuration named `rustywatch.yaml`, and please put the config in your root directory, for reference please check at bellow:
+The default configuration file is named `rustywatch.yaml`, and it must be located in your project's root directory. For a reference configuration, please see the example below:
+
 
 ```yaml
 # define workspaces, rustywatch can be handled multi project at the same time.
