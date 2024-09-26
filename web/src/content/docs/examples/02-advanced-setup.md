@@ -48,11 +48,11 @@ workspaces:
 
 ```
 
-In `go-project` need to add cmd to copy .env from the project to root.
+In `go-project` need to add script to copy .env from the project to root.
 
 ```yaml
 workspaces:
-- dir: ..
+- dir: ...
   cmd:
     # copy .env to root
     - cp ./go-project/.env .env
