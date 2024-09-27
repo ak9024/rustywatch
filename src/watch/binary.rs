@@ -27,7 +27,7 @@ pub fn exists(binary_path: &str) -> bool {
     metadata(binary_path).is_ok()
 }
 
-pub fn restart(binary_path: &str, cmd_arg: Option<Vec<String>>) -> Result<Child, std::io::Error> {
+pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child, std::io::Error> {
     info!("Restarting binary: {}", binary_path);
     match cmd_arg {
         Some(args) => match std::process::Command::new(binary_path).args(args).spawn() {
