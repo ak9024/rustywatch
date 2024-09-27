@@ -2,6 +2,7 @@ mod binary;
 mod command;
 mod filter;
 
+use crate::config::CommandType;
 use binary::{exists, remove, restart};
 use command::exec;
 use filter::is_ignored;
@@ -14,8 +15,6 @@ use std::{
     sync::mpsc::channel,
     time::Duration,
 };
-
-use crate::config::CommandType;
 
 pub async fn watch(
     dir: String,
@@ -31,15 +30,15 @@ pub async fn watch(
     })
     .unwrap();
 
-    let mut _ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
+    let _ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
 
     let mut running_binary: Option<Child> = None;
 
     reload(
         &mut running_binary,
-        bin_path.clone(),
-        cmd.clone(),
-        bin_arg.clone(),
+        &cmd,
+        bin_path.as_ref(),
+        bin_arg.as_ref(),
     )
     .await;
 
@@ -62,9 +61,9 @@ pub async fn watch(
 
                                     reload(
                                         &mut running_binary,
-                                        bin_path.as_ref().cloned(),
-                                        cmd.clone(),
-                                        bin_arg.clone(),
+                                        &cmd,
+                                        bin_path.as_ref(),
+                                        bin_arg.as_ref(),
                                     )
                                     .await;
                                 }
@@ -93,9 +92,9 @@ pub async fn watch(
 
 async fn reload(
     running_binary: &mut Option<Child>,
-    bin_path: Option<String>,
-    cmd: CommandType,
-    bin_arg: Option<Vec<String>>,
+    cmd: &CommandType,
+    bin_path: Option<&String>,
+    bin_arg: Option<&Vec<String>>,
 ) {
     if let Some(ref mut child) = running_binary {
         match child.kill() {
@@ -127,7 +126,7 @@ async fn reload(
                 };
             }
 
-            match restart(bin_path, bin_arg.clone()) {
+            match restart(bin_path, bin_arg) {
                 Ok(child) => *running_binary = Some(child),
                 Err(e) => {
                     error!("Failed to restart binary: {:?}", e);
@@ -194,7 +193,7 @@ mod tests {
     async fn test_reload_without_bin_path() {
         let mut running_binary = None;
         let cmd = CommandType::Single("echo 'Hello, World!'".to_string());
-        reload(&mut running_binary, None, cmd.clone(), None).await;
+        reload(&mut running_binary, &cmd, None, None).await;
 
         // Assert that running_binary is still None after reload
         assert!(running_binary.is_none());
