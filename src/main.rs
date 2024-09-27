@@ -1,6 +1,6 @@
 use clap::Parser;
 use futures::future::join_all;
-use log::{error, info};
+use log::error;
 use rustywatch::{
     args::{self, Args},
     config::{self, CommandType},
@@ -18,16 +18,10 @@ async fn main() {
     let args = Args::parse();
 
     if !Path::new(&args.config).exists() {
-        let dir = args.dir.unwrap_or_else(|| {
-            info!("Please define your directory --dir <dir>");
-            ".".to_string()
-        });
-        let cmd = CommandType::Single(args.command.unwrap().to_string());
-        let ignore = args.ignore;
-        let bin_path = args.bin_path;
-        let bin_arg = args.bin_arg;
+        let dir = args.dir.unwrap_or_else(|| ".".to_string());
+        let cmd = CommandType::Single(args.command.unwrap_or_else(|| "".to_string()).to_string());
 
-        match run(dir, cmd, ignore, bin_path, bin_arg).await {
+        match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg).await {
             Ok(_) => process::exit(0),
             Err(e) => {
                 error!("{e}");
