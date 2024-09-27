@@ -15,6 +15,7 @@ pub fn title() {
 }
 
 #[derive(Parser, Debug)]
+#[command(about = None)]
 #[clap(
     version,
     author = clap::crate_authors!("\n"),
@@ -42,7 +43,7 @@ pub struct Args {
     #[arg(long)]
     pub bin_path: Option<String>,
 
-    #[arg(short = 'a', long)]
+    #[arg(long, allow_hyphen_values = true)]
     pub bin_arg: Option<Vec<String>>,
 
     #[arg(long = "cfg", default_value_t = String::from("rustywatch.yaml"))]
