@@ -35,49 +35,44 @@ async fn main() {
             }
         }
     } else {
-        match config::read_config(args.config) {
-            Ok(config) => match config.validate() {
-                Ok(_) => {
-                    let tasks = config.workspaces.into_iter().map(|workspace| {
-                        tokio::spawn(async move {
-                            run(
-                                workspace.dir,
-                                workspace.cmd,
-                                workspace.ignore,
-                                workspace.bin_path,
-                                workspace.bin_arg,
-                            )
-                            .await
-                        })
-                    });
-
-                    let results = join_all(tasks).await;
-
-                    for result in results {
-                        match result {
-                            Ok(Ok(_)) => continue,
-                            Ok(Err(e)) => {
-                                error!("Task failed: {}", e);
-                                process::exit(1);
-                            }
-                            Err(e) => {
-                                error!("Task panicked: {}", e);
-                                process::exit(1);
-                            }
-                        }
-                    }
-
-                    process::exit(0)
-                }
-                Err(e) => {
+        match config::read_config(&args.config) {
+            Ok(config) => {
+                if let Err(e) = config.validate() {
                     error!("Config validation failed: {}", e);
                     process::exit(1);
                 }
-            },
 
-            Err(e) => {
-                error!("Missing field workspaces at your config: {}", e)
+                let tasks = config.workspaces.into_iter().map(|workspace| {
+                    tokio::spawn(async move {
+                        if let Err(e) = run(
+                            workspace.dir,
+                            workspace.cmd,
+                            workspace.ignore,
+                            workspace.bin_path,
+                            workspace.bin_arg,
+                        )
+                        .await
+                        {
+                            error!("Task failed: {}", e);
+                        }
+                    })
+                });
+
+                let results = join_all(tasks).await;
+
+                for result in results {
+                    if let Err(e) = result {
+                        error!("Task panicked: {}", e);
+                        process::exit(1);
+                    }
+                }
+
+                process::exit(0)
             }
-        };
+            Err(e) => {
+                error!("Failed to read config: {}", e);
+                process::exit(1);
+            }
+        }
     }
 }

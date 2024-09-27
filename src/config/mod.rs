@@ -42,7 +42,7 @@ pub struct Config {
     pub workspaces: Vec<Workspace>,
 }
 
-pub fn read_config(path: String) -> Result<Config, Box<dyn std::error::Error>> {
+pub fn read_config(path: &String) -> Result<Config, Box<dyn std::error::Error>> {
     let config_content = fs::read_to_string(&path)?;
     let config: Config = serde_yaml::from_str(&config_content)?;
     if config.workspaces.is_empty() {
