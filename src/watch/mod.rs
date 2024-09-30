@@ -26,8 +26,6 @@ mod tests {
         let mut running_binary = None;
         let cmd = CommandType::Single("echo 'Hello, World!'".to_string());
         reload(&mut running_binary, &cmd, None, None).await;
-
-        // Assert that running_binary is still None after reload
         assert!(running_binary.is_none());
     }
 
@@ -46,8 +44,6 @@ mod tests {
             )
             .await
         });
-
-        // Cancel the task (simulating a timeout)
         handle.abort();
 
         let result = handle.await;

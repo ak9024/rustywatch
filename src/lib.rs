@@ -15,6 +15,7 @@ pub async fn run(
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
 ) -> Result<(), Box<dyn Error + Send>> {
+    // for now need to skip testing for watch function
     if cfg!(not(test)) {
         if let Err(err) = watch(dir, cmd, ignore, bin_path, bin_arg).await {
             error!("Error watching directory: {:?}", err)

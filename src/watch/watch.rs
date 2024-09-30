@@ -85,3 +85,28 @@ pub async fn watch(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn test_watch() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        std::fs::write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+
+        let cmd = CommandType::Single("echo".to_string());
+        let ignore = Some(vec![".git".to_string()]);
+
+        let watch_task = tokio::spawn(async move {
+            watch(dir_path, cmd, ignore, None, None).await.unwrap();
+        });
+
+        std::fs::write(temp_dir.path().join("test.txt"), "modified content").unwrap();
+
+        watch_task.abort();
+    }
+}
