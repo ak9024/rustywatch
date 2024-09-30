@@ -1,14 +1,14 @@
 pub mod binary;
 pub mod command;
 pub mod filter;
+pub mod notify;
 pub mod reload;
-pub mod watch;
 
 #[cfg(test)]
 mod tests {
     use crate::{
         config::CommandType,
-        watch::{filter::is_ignored, reload::reload, watch::watch},
+        watch::{filter::is_ignored, notify::watch, reload::reload},
     };
     use std::path::PathBuf;
     use tempfile::tempdir;

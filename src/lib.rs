@@ -6,7 +6,7 @@ pub mod watch;
 use config::CommandType;
 use log::error;
 use std::error::Error;
-use watch::watch::watch;
+use watch::notify::watch;
 
 pub async fn run(
     dir: String,

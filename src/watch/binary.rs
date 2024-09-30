@@ -56,3 +56,53 @@ pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_remove() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_binary");
+        File::create(&file_path).unwrap();
+
+        assert!(remove(file_path.to_str().unwrap()));
+        assert!(!exists(file_path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn test_exists() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_binary");
+
+        assert!(!exists(file_path.to_str().unwrap()));
+        File::create(&file_path).unwrap();
+        assert!(exists(file_path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn test_restart() {
+        let dir = tempdir().unwrap();
+        let file_path = dir.path().join("test_binary");
+        File::create(&file_path)
+            .unwrap()
+            .write_all(b"#!/bin/sh\necho 'Test'")
+            .unwrap();
+
+        std::fs::set_permissions(
+            &file_path,
+            std::os::unix::fs::PermissionsExt::from_mode(0o755),
+        )
+        .unwrap();
+
+        let result = restart(file_path.to_str().unwrap(), None);
+        assert!(result.is_ok());
+
+        let child = result.unwrap();
+        assert!(child.id() > 0);
+    }
+}
