@@ -29,7 +29,7 @@ pub async fn exec(cmd: String) -> Result<Child, Box<dyn std::error::Error>> {
     Ok(output)
 }
 
-pub fn cmd_result(child: Child) {
+pub fn buf_reader(child: Child) {
     macro_rules! process_output {
         ($reader:expr, $print_fn:ident) => {
             for line in $reader.lines() {

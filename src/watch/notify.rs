@@ -12,7 +12,7 @@ use std::{
     time::Duration,
 };
 
-pub async fn watch(
+pub async fn watcher(
     dir: String,
     cmd: CommandType,
     ignore: Option<Vec<String>>,
@@ -89,6 +89,7 @@ pub async fn watch(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::write;
     use tempfile::tempdir;
 
     #[tokio::test]
@@ -96,16 +97,16 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
 
-        std::fs::write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
 
         let cmd = CommandType::Single("echo".to_string());
         let ignore = Some(vec![".git".to_string()]);
 
         let watch_task = tokio::spawn(async move {
-            watch(dir_path, cmd, ignore, None, None).await.unwrap();
+            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
         });
 
-        std::fs::write(temp_dir.path().join("test.txt"), "modified content").unwrap();
+        write(temp_dir.path().join("test.txt"), "modified content").unwrap();
 
         watch_task.abort();
     }
