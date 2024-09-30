@@ -1,5 +1,8 @@
 use log::{error, info, warn};
-use std::{fs::metadata, process::Child};
+use std::{
+    fs::metadata,
+    process::{Child, Command},
+};
 
 pub fn remove(binary_path: &str) -> bool {
     match metadata(binary_path) {
@@ -29,8 +32,9 @@ pub fn exists(binary_path: &str) -> bool {
 
 pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child, std::io::Error> {
     info!("Restarting binary: {}", binary_path);
+
     match cmd_arg {
-        Some(args) => match std::process::Command::new(binary_path).args(args).spawn() {
+        Some(args) => match Command::new(binary_path).args(args).spawn() {
             Ok(child) => {
                 info!("Binary started: {}", child.id());
                 Ok(child)
@@ -40,7 +44,7 @@ pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child
                 Err(e)
             }
         },
-        _ => match std::process::Command::new(binary_path).spawn() {
+        None => match Command::new(binary_path).spawn() {
             Ok(child) => {
                 info!("Binary started: {}", child.id());
                 Ok(child)

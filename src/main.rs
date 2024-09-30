@@ -24,7 +24,7 @@ async fn main() {
         match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg).await {
             Ok(_) => process::exit(0),
             Err(e) => {
-                error!("{e}");
+                error!("Error to execute the program: {}", e);
                 process::exit(1)
             }
         }

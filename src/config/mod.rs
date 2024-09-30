@@ -20,6 +20,12 @@ pub enum CommandType {
     Multiple(Vec<String>),
 }
 
+#[derive(Debug, Deserialize, Validate)]
+pub struct Config {
+    #[validate(nested)]
+    pub workspaces: Vec<Workspace>,
+}
+
 fn deserialize_cmd<'de, D>(deserializer: D) -> Result<CommandType, D::Error>
 where
     D: serde::Deserializer<'de>,
@@ -35,11 +41,6 @@ where
         StringOrVec::String(s) => Ok(CommandType::Single(s)),
         StringOrVec::Vec(v) => Ok(CommandType::Multiple(v)),
     }
-}
-#[derive(Debug, Deserialize, Validate)]
-pub struct Config {
-    #[validate(nested)]
-    pub workspaces: Vec<Workspace>,
 }
 
 pub fn read_config(path: String) -> Result<Config, Box<dyn std::error::Error>> {
