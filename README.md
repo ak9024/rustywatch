@@ -105,7 +105,6 @@ rustywatch --help
 ## Update version
 
 ```shell
-cargo uninstall rustywatch
 cargo install rustywatch
 ```
 

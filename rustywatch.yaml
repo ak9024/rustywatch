@@ -1,0 +1,18 @@
+# define workspaces, rustywatch can be handled multi project at the same time.
+workspaces:
+  - dir: './src'
+    cmd:
+     - cargo build
+    bin_path: './target/debug/rustywatch'
+    ignore:
+     - 'target/'
+    bin_arg:
+     - '-V'
+  # second project binary apps
+  - dir: './web'
+    ignore:
+     - 'node_modules/'
+    cmd:
+    - |
+      cd web;
+      npm run dev;
