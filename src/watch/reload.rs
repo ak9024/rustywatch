@@ -1,6 +1,6 @@
 use crate::{
     config::CommandType,
-    watch::{binary, command, command::cmd_result},
+    watch::{binary, command, command::buf_reader},
 };
 use binary::{exists, remove, restart};
 use command::exec;
@@ -27,7 +27,7 @@ pub async fn reload(
                 if !exists(bin_path) {
                     match cmd {
                         CommandType::Single(cmd) => match exec(cmd.clone()).await {
-                            Ok(child) => cmd_result(child),
+                            Ok(child) => buf_reader(child),
                             Err(e) => {
                                 error!("Failed to run command: {}", e)
                             }
@@ -35,7 +35,7 @@ pub async fn reload(
                         CommandType::Multiple(cmds) => {
                             for cmd in cmds {
                                 match exec(cmd.clone()).await {
-                                    Ok(child) => cmd_result(child),
+                                    Ok(child) => buf_reader(child),
                                     Err(e) => {
                                         error!("Failed to run command: {}", e)
                                     }
@@ -45,7 +45,6 @@ pub async fn reload(
                     };
                 }
 
-                // for now need to skip testing for restart use cases
                 if cfg!(not(test)) {
                     match restart(bin_path, bin_arg) {
                         Ok(child) => *running_binary = Some(child),
@@ -59,7 +58,7 @@ pub async fn reload(
         }
         None => match cmd {
             CommandType::Single(cmd) => match exec(cmd.clone()).await {
-                Ok(child) => cmd_result(child),
+                Ok(child) => buf_reader(child),
                 Err(e) => {
                     error!("Failed to run command: {}", e)
                 }
@@ -67,7 +66,7 @@ pub async fn reload(
             CommandType::Multiple(cmds) => {
                 for cmd in cmds {
                     match exec(cmd.clone()).await {
-                        Ok(child) => cmd_result(child),
+                        Ok(child) => buf_reader(child),
                         Err(e) => {
                             error!("Failed to run command: {}", e)
                         }

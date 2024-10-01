@@ -4,32 +4,25 @@ use std::{
 };
 use tokio::task;
 
-pub async fn exec(cmd: String) -> Result<Child, Box<dyn std::error::Error>> {
-    let output = task::spawn_blocking(move || {
-        if cfg!(windows) {
-            Command::new("cmd")
-                .arg("/C")
-                .arg(cmd)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap()
-        } else {
-            Command::new("sh")
-                .arg("-c")
-                .arg(cmd)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap()
-        }
+pub async fn exec(cmd: String) -> Result<Child, std::io::Error> {
+    task::spawn_blocking(move || match cfg!(windows) {
+        true => Command::new("cmd")
+            .arg("/C")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn(),
+        false => Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn(),
     })
-    .await?;
-
-    Ok(output)
+    .await?
 }
 
-pub fn cmd_result(child: Child) {
+pub fn buf_reader(child: Child) {
     macro_rules! process_output {
         ($reader:expr, $print_fn:ident) => {
             for line in $reader.lines() {
