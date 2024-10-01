@@ -20,13 +20,8 @@ mod tests {
 
     #[test]
     fn test_setup_logging() {
-        // Clear the RUST_LOG environment variable before the test
         env::remove_var("RUST_LOG");
-
-        // Call the setup_logging function
         setup_logging();
-
-        // Check if RUST_LOG is set to "info"
         assert_eq!(env::var("RUST_LOG").unwrap(), "info");
     }
 }

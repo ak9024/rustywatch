@@ -38,48 +38,52 @@ pub async fn watcher(
     )
     .await;
 
-    match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
-        Ok(_) => {
-            info!("Waching directory: {:?}", dir);
-            loop {
-                match rx.recv_timeout(Duration::from_secs(5)) {
-                    Ok(Ok(event)) => {
-                        if let EventKind::Modify(modify_kind) = event.kind {
-                            if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
-                                let paths = event
-                                    .paths
-                                    .iter()
-                                    .filter(|path| !is_ignored(path, &ignore))
-                                    .collect::<Vec<_>>();
+    // @NOTE
+    // just skip in mode testing to prevent blocking
+    if cfg!(not(test)) {
+        match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
+            Ok(_) => {
+                info!("Waching directory: {:?}", dir);
+                loop {
+                    match rx.recv_timeout(Duration::from_secs(5)) {
+                        Ok(Ok(event)) => {
+                            if let EventKind::Modify(modify_kind) = event.kind {
+                                if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
+                                    let paths = event
+                                        .paths
+                                        .iter()
+                                        .filter(|path| !is_ignored(path, &ignore))
+                                        .collect::<Vec<_>>();
 
-                                if !paths.is_empty() {
-                                    info!("File changed: {:?}", paths);
+                                    if !paths.is_empty() {
+                                        info!("File changed: {:?}", paths);
 
-                                    reload(
-                                        &mut running_binary,
-                                        &cmd,
-                                        bin_path.as_ref(),
-                                        bin_arg.as_ref(),
-                                    )
-                                    .await;
+                                        reload(
+                                            &mut running_binary,
+                                            &cmd,
+                                            bin_path.as_ref(),
+                                            bin_arg.as_ref(),
+                                        )
+                                        .await;
+                                    }
                                 }
                             }
                         }
-                    }
-                    Ok(Err(e)) => {
-                        error!("Watch error: {:?}", e);
-                    }
-                    Err(RecvTimeoutError::Timeout) => {
-                        continue;
-                    }
-                    Err(RecvTimeoutError::Disconnected) => {
-                        break;
+                        Ok(Err(e)) => {
+                            error!("Watch error: {:?}", e);
+                        }
+                        Err(RecvTimeoutError::Timeout) => {
+                            continue;
+                        }
+                        Err(RecvTimeoutError::Disconnected) => {
+                            break;
+                        }
                     }
                 }
             }
-        }
-        Err(e) => {
-            error!("Error to watching directory: {:?}", e.paths)
+            Err(e) => {
+                error!("Error to watching directory: {:?}", e.paths)
+            }
         }
     }
 

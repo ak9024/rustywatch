@@ -4,29 +4,24 @@ use std::{
 };
 use tokio::task;
 
-pub async fn exec(cmd: String) -> Result<Child, Box<dyn std::error::Error>> {
-    let output = task::spawn_blocking(move || {
-        if cfg!(windows) {
-            Command::new("cmd")
-                .arg("/C")
-                .arg(cmd)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap()
-        } else {
-            Command::new("sh")
-                .arg("-c")
-                .arg(cmd)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .unwrap()
-        }
+pub async fn exec(cmd: String) -> Result<Child, std::io::Error> {
+    let output = task::spawn_blocking(move || match cfg!(windows) {
+        true => Command::new("cmd")
+            .arg("/C")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn(),
+        false => Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn(),
     })
     .await?;
 
-    Ok(output)
+    output
 }
 
 pub fn buf_reader(child: Child) {
