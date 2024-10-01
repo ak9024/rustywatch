@@ -4,6 +4,101 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### ⚙️ Miscellaneous Tasks
+
+- Refactor with clean up watch/mod.rs
+- Add more testing
+- Rewrite watch to notify
+- Remove test in watch/mod.rs
+- Refactor lib.rs to use pattern matching
+- Fix cargo clippy
+
+## [0.2.7] - 2024-09-27
+
+### 🐛 Bug Fixes
+
+- Fix bug error in command --bin-arg
+
+## [0.2.6] - 2024-09-27
+
+### 📚 Documentation
+
+- *(web)* Adjust documentation
+
+### ⚡ Performance
+
+- Improve performance with remove clone()
+
+### Release
+
+- v0.2.6
+
+## [0.2.5] - 2024-09-25
+
+### 🐛 Bug Fixes
+
+- CLI cmd can't changed from the CLI
+
+### 📚 Documentation
+
+- Fix wrong config
+- Adjust example config in README.md
+- Adjust example config in README.md
+- Fix typo in config
+- Update readme
+- Add web rustywatch
+- *(web)* Add examples documentation
+- *(web)* Simplify guides.md
+
+### ⚙️ Miscellaneous Tasks
+
+- Refactor main.rs and lib.rs
+
+## [0.2.4] - 2024-09-24
+
+### 🚀 Features
+
+- Enhanced command to support multiple type string and array of string
+
+### 📚 Documentation
+
+- Adjust README.md
+
+### ⚙️ Miscellaneous Tasks
+
+- Adjust error log
+- Update patch v0.2.4
+
+## [0.2.3] - 2024-09-23
+
+### ⚙️ Miscellaneous Tasks
+
+- Add more testing
+- Add ignore capability to filter dir
+- Add validation
+
+## [0.2.2] - 2024-09-23
+
+### 📚 Documentation
+
+- Adjust readme
+- Fix typo
+
+### ⚙️ Miscellaneous Tasks
+
+- Skip cd for macos
+- Refactor mod watch
+
+## [0.2.1] - 2024-09-23
+
+### ⚙️ Miscellaneous Tasks
+
+- Add git-cliff for doc CHANGELOG.md
+- Increase patch of version to v0.2.1
+- Move out FUNDING.yml and PR template
+
+## [0.2.0] - 2024-09-22
+
 ### 📚 Documentation
 
 - Update readme
@@ -11,6 +106,12 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Update version
+
+## [0.1.8-beta.1] - 2024-09-22
+
+### 📚 Documentation
+
+- Update readme
 
 ## [0.1.8] - 2024-09-22
 
@@ -45,7 +146,7 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
-- V0.1.7
+- v0.1.7
 
 ## [0.1.6-beta.1] - 2024-09-21
 
@@ -70,7 +171,7 @@ All notable changes to this project will be documented in this file.
 
 ### Release
 
-- V0.1.5
+- v0.1.5
 
 ## [0.1.4] - 2024-09-20
 
@@ -111,7 +212,6 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Release v0.1.1
-- Release v0.1.1
 - Fix typo in ci.yml
 
 ## [0.1.0-beta.1] - 2024-09-20
@@ -119,8 +219,6 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Add readme for documentation
-- Add labels and update readme
-- Add labels and update readme
 - Add labels and update readme
 
 ### ⚙️ Miscellaneous Tasks
