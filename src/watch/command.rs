@@ -5,7 +5,7 @@ use std::{
 use tokio::task;
 
 pub async fn exec(cmd: String) -> Result<Child, std::io::Error> {
-    let output = task::spawn_blocking(move || match cfg!(windows) {
+    task::spawn_blocking(move || match cfg!(windows) {
         true => Command::new("cmd")
             .arg("/C")
             .arg(cmd)
@@ -19,9 +19,7 @@ pub async fn exec(cmd: String) -> Result<Child, std::io::Error> {
             .stderr(Stdio::piped())
             .spawn(),
     })
-    .await?;
-
-    output
+    .await?
 }
 
 pub fn buf_reader(child: Child) {
