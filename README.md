@@ -8,7 +8,7 @@
 ![Crates.io Version](https://img.shields.io/crates/v/rustywatch) 
 ![Codecov](https://img.shields.io/codecov/c/github/ak9024/rustywatch)
 
-[![asciicast](https://asciinema.org/a/677470.svg)](https://asciinema.org/a/677470)
+[![asciicast](https://asciinema.org/a/678683.svg)](https://asciinema.org/a/678683)
 
 ## Live Reloading Built with Rust
 
