@@ -9,7 +9,7 @@ use std::process;
 use validator::Validate;
 
 pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
-    match config::read_config(args.config) {
+    match config::read(args.config) {
         Ok(config) => match config.validate() {
             Ok(_) => {
                 let tasks = config.workspaces.into_iter().map(|workspace| {
