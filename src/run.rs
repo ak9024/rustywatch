@@ -8,7 +8,7 @@ use log::error;
 use std::process;
 use validator::Validate;
 
-pub async fn run_with_config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     match config::read_config(args.config) {
         Ok(config) => match config.validate() {
             Ok(_) => {
@@ -56,7 +56,7 @@ pub async fn run_with_config(args: Args) -> Result<(), Box<dyn std::error::Error
     }
 }
 
-pub async fn run_without_config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn cli(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let dir = args.dir.unwrap_or_else(|| ".".to_string());
     let cmd = CommandType::Single(args.command.unwrap_or_default().to_string());
 
@@ -88,7 +88,7 @@ mod tests {
     use tokio::test;
 
     #[test]
-    async fn test_run_without_config() {
+    async fn config() {
         let args = Args {
             config: "".to_string(),
             dir: Some(".".to_string()),
@@ -98,7 +98,7 @@ mod tests {
             bin_arg: None,
         };
 
-        let result = run_without_config(args).await;
+        let result = cli(args).await;
         assert!(result.is_ok());
     }
 

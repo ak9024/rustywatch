@@ -1,8 +1,7 @@
 use clap::Parser;
 use rustywatch::{
     args::{self, Args},
-    logger,
-    run::{run_with_config, run_without_config},
+    logger, run,
 };
 use std::path::Path;
 
@@ -15,7 +14,7 @@ async fn main() {
     let args = Args::parse();
 
     match Path::new(&args.config).exists() {
-        true => run_with_config(args).await.unwrap(),
-        false => run_without_config(args).await.unwrap(),
+        true => run::config(args).await.unwrap(),
+        false => run::cli(args).await.unwrap(),
     }
 }
