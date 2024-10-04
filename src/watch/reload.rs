@@ -1,5 +1,5 @@
 use crate::{
-    config::CommandType,
+    config::entity::CommandType,
     watch::{binary, command, command::buf_reader},
 };
 use binary::{exists, remove, restart};

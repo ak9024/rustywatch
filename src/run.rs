@@ -1,6 +1,6 @@
 use crate::{
     args::Args,
-    config::{self, CommandType},
+    config::{entity::CommandType, read::read},
     watch::notify::watcher,
 };
 use futures::future::join_all;
@@ -9,7 +9,7 @@ use std::process;
 use validator::Validate;
 
 pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
-    match config::read(args.config) {
+    match read(args.config) {
         Ok(config) => match config.validate() {
             Ok(_) => {
                 let tasks = config.workspaces.into_iter().map(|workspace| {

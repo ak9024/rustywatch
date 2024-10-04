@@ -1,6 +1,6 @@
 # define workspaces, rustywatch can be handled multi project at the same time.
 workspaces:
-  - dir: './src'
+  - dir: '.'
     cmd:
      - cargo build
     bin_path: './target/debug/rustywatch'
