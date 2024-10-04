@@ -3,7 +3,7 @@ use crate::{
     watch::{filter::is_ignored, reload::reload},
 };
 
-use log::{error, info};
+use log::{error, info, warn};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
     process::{self, Child},
@@ -18,7 +18,10 @@ pub async fn watcher(
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
 ) -> notify::Result<()> {
-    let ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
+    let ignore = ignore.unwrap_or_else(|| {
+        warn!("RustyWatch provide options to ignored specific directory or files to be ignored.");
+        vec!["".to_string()]
+    });
 
     let mut running_binary: Option<Child> = None;
 
