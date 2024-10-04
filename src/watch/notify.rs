@@ -1,15 +1,14 @@
 use crate::{
-    config::CommandType,
+    config::schema::CommandType,
     watch::{filter::is_ignored, reload::reload},
 };
 
-use log::{error, info};
+use log::{error, info, warn};
 use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
-    process::Child,
+    process::{self, Child},
     result::Result,
-    sync::mpsc::{channel, RecvTimeoutError},
-    time::Duration,
+    sync::mpsc::channel,
 };
 
 pub async fn watcher(
@@ -19,14 +18,10 @@ pub async fn watcher(
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
 ) -> notify::Result<()> {
-    let (tx, rx) = channel();
-
-    let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
-        tx.send(res).unwrap();
-    })
-    .unwrap();
-
-    let ignore = ignore.unwrap_or_else(|| vec![".git".to_string()]);
+    let ignore = ignore.unwrap_or_else(|| {
+        warn!("RustyWatch provide options to ignored specific directory or files to be ignored.");
+        vec!["".to_string()]
+    });
 
     let mut running_binary: Option<Child> = None;
 
@@ -38,52 +33,62 @@ pub async fn watcher(
     )
     .await;
 
-    // @NOTE
-    // just skip in mode testing to prevent blocking
-    if cfg!(not(test)) {
-        match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
-            Ok(_) => {
-                info!("Waching directory: {:?}", dir);
-                loop {
-                    match rx.recv_timeout(Duration::from_secs(5)) {
-                        Ok(Ok(event)) => {
-                            if let EventKind::Modify(modify_kind) = event.kind {
-                                if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
-                                    let paths = event
-                                        .paths
-                                        .iter()
-                                        .filter(|path| !is_ignored(path, &ignore))
-                                        .collect::<Vec<_>>();
+    let (tx, rx) = channel();
 
-                                    if !paths.is_empty() {
-                                        info!("File changed: {:?}", paths);
+    let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
+        tx.send(res).unwrap();
+    })
+    .unwrap();
 
-                                        reload(
-                                            &mut running_binary,
-                                            &cmd,
-                                            bin_path.as_ref(),
-                                            bin_arg.as_ref(),
-                                        )
-                                        .await;
+    match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
+        Ok(_) => {
+            info!("Waching directory: {:?}", dir);
+
+            // @NOTE
+            // in testing env need to skip loop.
+            // prevent blocking
+            if cfg!(test) {
+                process::exit(0)
+            }
+
+            loop {
+                match rx.recv() {
+                    Ok(Ok(event)) => {
+                        if let EventKind::Modify(modify_kind) = event.kind {
+                            if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
+                                let paths = event
+                                    .paths
+                                    .iter()
+                                    .filter(|path| !is_ignored(path, &ignore))
+                                    .collect::<Vec<_>>();
+
+                                if !paths.is_empty() {
+                                    if let Some(file) = paths.first() {
+                                        info!("File changed: {:?}", file);
                                     }
+
+                                    reload(
+                                        &mut running_binary,
+                                        &cmd,
+                                        bin_path.as_ref(),
+                                        bin_arg.as_ref(),
+                                    )
+                                    .await;
                                 }
                             }
                         }
-                        Ok(Err(e)) => {
-                            error!("Watch error: {:?}", e);
-                        }
-                        Err(RecvTimeoutError::Timeout) => {
-                            continue;
-                        }
-                        Err(RecvTimeoutError::Disconnected) => {
-                            break;
-                        }
+                    }
+                    Ok(Err(e)) => {
+                        error!("Watch error: {:?}", e);
+                    }
+                    Err(e) => {
+                        error!("Watch error: {:?}", e);
                     }
                 }
             }
-            Err(e) => {
-                error!("Error to watching directory: {:?}", e.paths)
-            }
+        }
+        Err(e) => {
+            error!("Error to watching directory: {:?}", e.paths)
         }
     }
 

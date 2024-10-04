@@ -16,7 +16,7 @@ rustywatch -h
 | `--bin_path` | Specifies the path to the binary to execute, invoked after `--cmd`. | `string`    |
 | `--bin_arg`  | Allows you to provide additional arguments for the binary.     | `array`     |
 | `--ignore`   | Lists directories or files to be ignored.                      | `array`     |
-| `--cmd`      | Custom command to be executed.                                 | `string`    |
+| `--cmd`      | Custom command to be executed.                                 | `array`    |
 
 ##### Workspaces
 

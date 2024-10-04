@@ -1,4 +1,4 @@
-use log::{error, info, warn};
+use log::{error, info};
 use std::{
     fs::metadata,
     process::{Child, Command},
@@ -7,10 +7,10 @@ use std::{
 pub fn remove(binary_path: &str) -> bool {
     match metadata(binary_path) {
         Ok(_) => {
-            warn!("Remove old binary: {}", binary_path);
+            info!("Remove old binary: {}", binary_path);
             match std::fs::remove_file(binary_path) {
                 Ok(_) => {
-                    warn!("Old binary removed");
+                    info!("Old binary removed");
                     true
                 }
                 Err(e) => {
