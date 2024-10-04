@@ -1,4 +1,4 @@
-use crate::config::entity::Config;
+use crate::config::schema::Config;
 use std::fs;
 
 pub fn read(path: String) -> Result<Config, Box<dyn std::error::Error>> {
@@ -13,7 +13,7 @@ pub fn read(path: String) -> Result<Config, Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::entity::CommandType;
+    use crate::config::schema::CommandType;
 
     #[test]
     fn test_read_config() {

@@ -1,5 +1,5 @@
 use crate::{
-    config::entity::CommandType,
+    config::schema::CommandType,
     watch::{filter::is_ignored, reload::reload},
 };
 

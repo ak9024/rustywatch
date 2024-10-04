@@ -1,6 +1,6 @@
 use crate::{
     args::Args,
-    config::{entity::CommandType, read::read},
+    config::{helper::read, schema::CommandType},
     watch::notify::watcher,
 };
 use futures::future::join_all;
