@@ -33,7 +33,7 @@ pub struct Args {
     pub dir: Option<String>,
 
     #[arg(short = 'c', long = "cmd")]
-    pub command: Option<String>,
+    pub command: Option<Vec<String>>,
 
     #[arg(short = 'i', long)]
     pub ignore: Option<Vec<String>>,
@@ -56,7 +56,7 @@ mod tests {
     fn test_args_creation() {
         let args = Args {
             dir: Some(String::from("/test/dir")),
-            command: Some(String::from("test_command")),
+            command: Some(vec![String::from("test_command")]),
             ignore: Some(vec![String::from(".git")]),
             bin_path: None,
             bin_arg: Some(vec![String::from("server")]),
@@ -64,7 +64,7 @@ mod tests {
         };
 
         assert_eq!(args.dir.unwrap(), "/test/dir");
-        assert_eq!(args.command.unwrap(), "test_command");
+        assert_eq!(args.command.unwrap()[0], "test_command");
         assert_eq!(args.ignore.unwrap()[0], ".git");
 
         match args.bin_path {

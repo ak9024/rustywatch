@@ -58,7 +58,10 @@ pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
 pub async fn cli(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let dir = args.dir.unwrap_or_else(|| ".".to_string());
-    let cmd = CommandType::Single(args.command.unwrap_or_default().to_string());
+    let cmd = match args.command {
+        Some(command) => CommandType::Multiple(command),
+        None => CommandType::Single(String::new()),
+    };
 
     match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg).await {
         Ok(_) => process::exit(0),
@@ -92,7 +95,7 @@ mod tests {
         let args = Args {
             config: "".to_string(),
             dir: Some(".".to_string()),
-            command: Some("echo 'test'".to_string()),
+            command: Some(vec!["echo 'test'".to_string()]),
             ignore: None,
             bin_path: None,
             bin_arg: None,
