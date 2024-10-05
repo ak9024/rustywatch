@@ -20,7 +20,7 @@ pub async fn watcher(
 ) -> notify::Result<()> {
     let ignore = ignore.unwrap_or_else(|| {
         warn!("RustyWatch provide options to ignored specific directory or files to be ignored.");
-        vec!["".to_string()]
+        vec![".git/".to_string()]
     });
 
     let mut running_binary: Option<Child> = None;
