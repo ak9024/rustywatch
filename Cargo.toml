@@ -16,6 +16,10 @@ include = [
   "LICENSE*",
   "README.md",
 ]
+exclude = [
+  "web/**/*",
+  "examples/**/*"
+]
 
 [profile.dev]
 opt-level = 0
