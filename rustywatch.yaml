@@ -1,16 +1,21 @@
-# define workspaces, rustywatch can be handled multi project at the same time.
 workspaces:
-  - dir: '.'
+  - dir: 'examples/go-fiber-api'
     cmd:
-     - cargo build
-    bin_path: './target/debug/rustywatch'
+      - echo "go-fiber-api"
+      - |
+        cd examples/go-fiber-api;
+        go build;
+    bin_path: 'examples/go-fiber-api/go-fiber-api'
+  - dir: 'examples/nodejs'
+    cmd:
+      - echo "nodejs"
+      - cd examples/nodejs;npm start;
+  - dir: 'examples/rust-actix'
+    cmd:
+      - echo "rust-actix"
+      - |
+        cd examples/rust-actix;
+        cargo build;
+    bin_path: 'examples/rust-actix/target/debug/rust-actix'
     ignore:
-     - 'target/'
-    bin_arg:
-     - '-V'
-  # second project binary apps
-  - dir: './web'
-    cmd:
-    - |
-      cd web;
-      npm run dev;
+      - 'examples/rust-actix/target/'
