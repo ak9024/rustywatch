@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "nodemon": "^3.1.7"
+  },
+  "name": "nodejs",
+  "version": "1.0.0",
+  "main": "server.js",
+  "devDependencies": {},
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
