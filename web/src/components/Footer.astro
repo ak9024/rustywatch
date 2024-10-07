@@ -1,0 +1,64 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+import Default from '@astrojs/starlight/components/Footer.astro';
+
+const isHomepage = Astro.props.slug === '';
+---
+
+{
+  isHomepage ? (
+    <footer class="footer">
+      <div class="container">
+        <p>
+          Built with <a class="hero-link" href="https://rustlang.org" target="_blank" rel="noopener noreferrer">Rust</a> 🦀
+            <span class="small-text">with 🖤 from <a class="author-link" href="https://github.com/ak9024" target="_blank" rel="noopener noreferrer">@ak9024</a></p>
+        </p>
+        <p class="small-text">&copy; {new Date().getFullYear()} RustyWatch. All rights reserved.</p>
+     </div>
+    </footer>
+  ) : (
+    <Default {...Astro.props}>
+      <slot />
+    </Default>
+  )
+}
+
+<style>
+  .footer {
+    padding: 1rem 0;
+    text-align: center;
+    border-top: 1px solid var(--astro-border);
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .small-text {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  .hero-link {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .author-link {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .repo-link {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+</style>

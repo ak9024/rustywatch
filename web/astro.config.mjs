@@ -1,32 +1,43 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [
-    starlight({
-      title: 'RustyWatch',
-      social: {
-        github: 'https://github.com/ak9024/rustywatch',
+  integrations: [starlight({
+    title: 'RustyWatch',
+    customCss: [
+      '@fontsource/dejavu-sans/400.css',
+      './src/tailwind.css',
+      './src/styles/custom.css'
+    ],
+    social: {
+      github: 'https://github.com/ak9024/rustywatch',
+    },
+    components: {
+      Hero: "./src/components/Hero.astro",
+      Footer: "./src/components/Footer.astro"
+    },
+    sidebar: [
+      {
+        label: 'Getting Started',
+        autogenerate: { directory: 'getting-started' },
       },
-      sidebar: [
-        {
-          label: 'Guides',
-          items: [
-            // Each item here is one entry in the navigation menu.
-            { label: 'Guides', slug: 'guides/guides' },
-          ],
-        },
-        {
-          label: 'Examples',
-          autogenerate: { directory: 'examples' },
-        },
-        {
-          label: 'Reference',
-          autogenerate: { directory: 'reference' },
-        },
-      ],
-    }),
-  ],
+      {
+        label: 'Installation',
+        autogenerate: { directory: 'installation' },
+      },
+      {
+        label: 'Usage',
+        autogenerate: { directory: 'usage' },
+      },
+      {
+        label: 'Reference',
+        autogenerate: { directory: 'reference' },
+      },
+    ],
+  }), tailwind({
+    applyBaseStyles: false,
+  })],
 });
