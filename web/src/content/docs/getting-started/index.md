@@ -4,16 +4,26 @@ title: Getting Started
 
 **RustyWatch** Now Supports Multiple Projects! 🤘 
 
+:::note
+
 **What's New?**
 
 - Run Multiple Projects Simultaneously: No need for complex setups—RustyWatch now handles multiple projects effortlessly.
 - No Dependencies: Forget about monorepos, TurboRepo, or any additional tools. All you need is RustyWatch!
 
+:::
+
+**Installation**
+
+> Open your terminal and run:
+
 ```shell
 cargo install rustywatch
 ```
 
-Just create `rustywatch.yaml` in your root of projects, then type `rustywatch` in your shell for running.
+**Configuration**
+
+in the root directory of your projects. create file named `rustywatch.yaml`.
 
 ```yaml
 workspaces:
@@ -38,3 +48,13 @@ workspaces:
     bin_arg: <your_bin_arguments>
     ignore: <ignore>
 ```
+
+**Usage**
+
+Once you've set up the configuration file, simply run RustyWatch by typing:
+
+```shell
+rustywatch
+```
+
+RustyWatch will automatically start building your projects based on the settings in your `rustywatch.yaml`

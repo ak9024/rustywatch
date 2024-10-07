@@ -16,6 +16,7 @@ export default defineConfig({
       github: 'https://github.com/ak9024/rustywatch',
     },
     components: {
+      Head: "./src/components/Head.astro",
       Hero: "./src/components/Hero.astro",
       Footer: "./src/components/Footer.astro"
     },
