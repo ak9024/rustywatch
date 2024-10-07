@@ -10,7 +10,7 @@ export default defineConfig({
       {
         tag: 'script',
         attrs: {
-          src: 'https://www.googletagmanager.com/gtm.js?id=GTM-PKT3WX2B',
+          src: 'https://www.googletagmanager.com/gtag/js?id=G-CYLN707PNH',
           defer: true
         }
       }
