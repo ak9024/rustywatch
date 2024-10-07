@@ -6,6 +6,15 @@ import tailwind from '@astrojs/tailwind';
 // https://astro.build/config
 export default defineConfig({
   integrations: [starlight({
+    head: [
+      {
+        tag: 'script',
+        attrs: {
+          src: 'https://www.googletagmanager.com/gtm.js?id=GTM-PKT3WX2B',
+          defer: true
+        }
+      }
+    ],
     title: 'RustyWatch',
     customCss: [
       '@fontsource/dejavu-sans/400.css',
