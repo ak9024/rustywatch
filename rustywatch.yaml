@@ -1,11 +1,13 @@
 workspaces:
-  - dir: 'examples/go-fiber-api'
+  - dir: 'web'
+    cmd: 'cd web;npm run dev'
+  - dir: 'examples/go-fiber'
     cmd:
-      - echo "go-fiber-api"
+      - echo "go-fiber"
       - |
-        cd examples/go-fiber-api;
+        cd examples/go-fiber;
         go build;
-    bin_path: 'examples/go-fiber-api/go-fiber-api'
+    bin_path: 'examples/go-fiber/go-fiber'
   - dir: 'examples/nodejs'
     cmd:
       - echo "nodejs"
@@ -19,3 +21,9 @@ workspaces:
     bin_path: 'examples/rust-actix/target/debug/rust-actix'
     ignore:
       - 'examples/rust-actix/target/'
+  - dir: 'examples/bun'
+    cmd:
+      - echo "bun expressjs"
+      - |
+          cd examples/bun;
+          bun --watch ./server.ts;

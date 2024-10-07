@@ -1,0 +1,51 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+import Default from '@astrojs/starlight/components/Hero.astro';
+
+const isHomePage = Astro.props.slug === '';
+---
+
+{
+  isHomePage ? (
+  <div class="main">
+      <h1 class="brand">RustyWatch</h1>
+      <p class="title">
+        RustyWatch hot reloader for any applications.
+      </p>
+      <p class="description">
+        RustyWatch allowing developers to focus on building and improving their code rather than performing repetitive tasks. It enhances productivity by streamlining workflows.
+      </p>
+    </div>
+
+    <Default {...Astro.props}>
+      <slot />
+    </Default>
+  ) : (
+    <Default {...Astro.props}>
+      <slot />
+    </Default>
+  )
+}
+
+<style>
+  .brand {
+    display: flex;
+    justify-content: center;
+  }
+
+  .title {
+    color: var(--sl-color-accent);
+    text-align: center;
+    width: 75%;
+    margin: 5px auto;
+    font-style: italic;
+  }
+
+  .description {
+    color: var(--sl-color-gray-2);
+    line-height: 1.6;
+    text-align: center;
+    width: 75%;
+    margin: 10px auto;
+  }
+</style>
