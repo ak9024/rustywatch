@@ -11,7 +11,7 @@ export default defineConfig({
         tag: 'script',
         attrs: {
           src: 'https://www.googletagmanager.com/gtag/js?id=G-CYLN707PNH',
-          defer: true
+          async: true
         }
       }
     ],
