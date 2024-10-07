@@ -2,7 +2,14 @@
 title: Usage
 ---
 
-**RustyWatch** can be usage without the configuration.
+### Running RustyWatch without configuration.
+
+You can run RustyWatch directly from the terminal without needing a configuration file.
+
+Here's how:
+
+
+**Basic Usage**
 
 ```shell
 rustywatch --dir <your_dir> \
@@ -11,28 +18,33 @@ rustywatch --dir <your_dir> \
   --ignore '.git/'
 ```
 
-### Examples
+### Example: Simple HTTP Server with Go 
 
-Example you create a simple http server with go.
+Let's walk through an example where you create a simple HTTP server using Go and the Fiber web framework.
+
+
+**Setup the project**
+
+Create new directory `go-project`.
 
 ```shell
 mkdir go-project;
 cd go-project;
 ```
 
-Then create or init module with go.
+Initialize ghe go module for your project.
 
 ```shell
 go mod init go-project;
 ```
 
-Install web framework, example `go fiber`.
+Install the Fiber framework by running:
 
 ```shell
 go get github.com/gofiber/fiber/v2
 ```
 
-Create `main.go`.
+Now, create a `main.go` file with the following content.
 
 ```go
 package main
@@ -49,6 +61,9 @@ func main() {
 	app.Listen(":3000")
 }
 ```
+
+Your project structure look like this.
+
 ```
 .
 └── go-project/
