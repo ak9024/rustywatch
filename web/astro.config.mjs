@@ -43,6 +43,10 @@ export default defineConfig({
         autogenerate: { directory: 'usage' },
       },
       {
+        label: 'Blog',
+        autogenerate: { directory: 'blog' },
+      },
+      {
         label: 'Reference',
         autogenerate: { directory: 'reference' },
       },

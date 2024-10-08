@@ -32,7 +32,7 @@ mkdir go-project;
 cd go-project;
 ```
 
-Initialize ghe go module for your project.
+Initialize go module for your project.
 
 ```shell
 go mod init go-project;
