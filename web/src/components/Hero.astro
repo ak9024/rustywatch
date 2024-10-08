@@ -1,6 +1,8 @@
 ---
 import type { Props } from '@astrojs/starlight/props';
 import Default from '@astrojs/starlight/components/Hero.astro';
+import { Image } from 'astro:assets';
+import rustywatch from '../assets/rustywatch.gif';
 
 const isHomePage = Astro.props.slug === '';
 ---
@@ -12,6 +14,9 @@ const isHomePage = Astro.props.slug === '';
       <p class="title">
         RustyWatch hot reloader for any applications.
       </p>
+      <div class="image-container">
+        <Image src={rustywatch} alt="rustywatch demo .gif" />
+      </div>
       <p class="description">
         RustyWatch allowing developers to focus on building and improving their code rather than performing repetitive tasks. It enhances productivity by streamlining workflows.
       </p>
@@ -28,6 +33,10 @@ const isHomePage = Astro.props.slug === '';
 }
 
 <style>
+  .image-container {
+    text-align: center;
+  }
+
   .brand {
     display: flex;
     justify-content: center;
