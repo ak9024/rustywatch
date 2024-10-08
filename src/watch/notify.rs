@@ -44,7 +44,7 @@ pub async fn watcher(
     .unwrap();
 
     // @NOTE
-    // listen the directory with kode recursive
+    // listen the directory with recursive mode
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
             info!("Waching directory: {:?}", dir);
