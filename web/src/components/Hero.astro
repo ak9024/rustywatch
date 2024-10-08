@@ -15,7 +15,7 @@ const isHomePage = Astro.props.slug === '';
         RustyWatch hot reloader for any applications.
       </p>
       <div class="image-container">
-        <Image src={rustywatch} alt="rustywatch demo .gif" />
+        <Image class="image" src={rustywatch} alt="rustywatch demo .gif" />
       </div>
       <p class="description">
         RustyWatch allowing developers to focus on building and improving their code rather than performing repetitive tasks. It enhances productivity by streamlining workflows.
@@ -35,6 +35,11 @@ const isHomePage = Astro.props.slug === '';
 <style>
   .image-container {
     text-align: center;
+  }
+
+  .image {
+    max-width: 100%;
+    height: auto;
   }
 
   .brand {
