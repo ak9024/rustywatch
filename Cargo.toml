@@ -3,7 +3,7 @@ name = "rustywatch"
 authors = ["Adiatma Kamarudin <adiatma.mail@gmail.com>"]
 rust-version = "1.81.0"
 description = "Live reloading for any programing languages"
-version = "0.2.10"
+version = "0.2.11"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ak9024/rustywatch"
@@ -46,8 +46,6 @@ notify = "6.1.1"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_yaml = "0.9.34"
 tokio = { version = "1.40.0", features = ["full"] }
-validation = "0.0.1"
-validator = { version = "0.18.1", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.5.1"

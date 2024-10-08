@@ -1,28 +1,13 @@
-use log::{error, info};
 use std::{
-    fs::metadata,
+    fs::{metadata, remove_file},
+    io::Error,
     process::{Child, Command},
 };
 
 pub fn remove(binary_path: &str) -> bool {
     match metadata(binary_path) {
-        Ok(_) => {
-            info!("Remove old binary: {}", binary_path);
-            match std::fs::remove_file(binary_path) {
-                Ok(_) => {
-                    info!("Old binary removed");
-                    true
-                }
-                Err(e) => {
-                    error!("Failed to remove binary: {:?}", e);
-                    false
-                }
-            }
-        }
-        Err(_) => {
-            info!("No binary found to remove.");
-            true
-        }
+        Ok(_) => remove_file(binary_path).is_ok(),
+        Err(_) => true,
     }
 }
 
@@ -30,29 +15,15 @@ pub fn exists(binary_path: &str) -> bool {
     metadata(binary_path).is_ok()
 }
 
-pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child, std::io::Error> {
-    info!("Restarting binary: {}", binary_path);
-
+pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child, Error> {
     match cmd_arg {
         Some(args) => match Command::new(binary_path).args(args).spawn() {
-            Ok(child) => {
-                info!("Binary started: {}", child.id());
-                Ok(child)
-            }
-            Err(e) => {
-                error!("Failed to restart: {:?}", e);
-                Err(e)
-            }
+            Ok(child) => Ok(child),
+            Err(e) => Err(e),
         },
         None => match Command::new(binary_path).spawn() {
-            Ok(child) => {
-                info!("Binary started: {}", child.id());
-                Ok(child)
-            }
-            Err(e) => {
-                error!("Failed to restart: {:?}", e);
-                Err(e)
-            }
+            Ok(child) => Ok(child),
+            Err(e) => Err(e),
         },
     }
 }
