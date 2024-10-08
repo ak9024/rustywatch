@@ -13,14 +13,20 @@ pub async fn reload(
     bin_path: Option<&String>,
     bin_arg: Option<&Vec<String>>,
 ) {
+    // @NOTE
+    // restart with killed old binary.
     match running_binary {
         Some(ref mut child) => match child.kill() {
-            Ok(_) => info!("Killed the running binary"),
-            Err(e) => error!("Failed to kill binary: {:?}", e),
+            Ok(_) => info!("Restarting..."),
+            Err(e) => error!("Failed to restart binary: {:?}", e.to_string()),
         },
         None => (),
     }
 
+    // @NOTE
+    // execute bin_path with option:
+    // if not exists execute.
+    // then any skip, just execute command.
     match bin_path {
         Some(bin_path) => {
             if remove(bin_path) {
@@ -29,7 +35,7 @@ pub async fn reload(
                         CommandType::Single(cmd) => match exec(cmd.clone()).await {
                             Ok(child) => buf_reader(child),
                             Err(e) => {
-                                error!("Failed to run command: {}", e)
+                                error!("Failed to run command: {}", e.to_string())
                             }
                         },
                         CommandType::Multiple(cmds) => {
@@ -37,7 +43,7 @@ pub async fn reload(
                                 match exec(cmd.clone()).await {
                                     Ok(child) => buf_reader(child),
                                     Err(e) => {
-                                        error!("Failed to run command: {}", e)
+                                        error!("Failed to run command: {}", e.to_string())
                                     }
                                 }
                             }
@@ -45,22 +51,32 @@ pub async fn reload(
                     };
                 }
 
-                if cfg!(not(test)) {
-                    match restart(bin_path, bin_arg) {
-                        Ok(child) => *running_binary = Some(child),
-                        Err(e) => {
-                            error!("Failed to restart binary: {:?}", e);
-                            *running_binary = None
-                        }
+                // @NOTE
+                // prevent restart in test environment
+                if cfg!(test) {
+                    return;
+                }
+
+                // @NOTE
+                // restart the binary
+                match restart(bin_path, bin_arg) {
+                    Ok(child) => *running_binary = Some(child),
+                    Err(e) => {
+                        error!("Failed to restart binary: {:?}", e.to_string());
+                        error!("Please check your <bin_path>: {}", bin_path);
+                        *running_binary = None
                     }
                 }
             }
         }
+
+        // @NOTE
+        // if bin_path not defined, just execute command.
         None => match cmd {
             CommandType::Single(cmd) => match exec(cmd.clone()).await {
                 Ok(child) => buf_reader(child),
                 Err(e) => {
-                    error!("Failed to run command: {}", e)
+                    error!("Failed to run command: {}", e.to_string())
                 }
             },
             CommandType::Multiple(cmds) => {
@@ -68,7 +84,7 @@ pub async fn reload(
                     match exec(cmd.clone()).await {
                         Ok(child) => buf_reader(child),
                         Err(e) => {
-                            error!("Failed to run command: {}", e)
+                            error!("Failed to run command: {}", e.to_string())
                         }
                     }
                 }

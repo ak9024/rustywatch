@@ -1,18 +1,27 @@
 use crate::{
     args::Args,
     config::{helper::read, schema::CommandType},
-    watch::notify::watcher,
+    watch::notify as watch_notify,
 };
 use futures::future::join_all;
-use log::error;
-use std::process;
-use validator::Validate;
+use notify::Error as NotifyError;
+use std::{error::Error, process};
+use watch_notify::watcher;
 
-pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+// @NOTE
+// config is an option to run rustywatch with that configuration.
+// config can be define with custom name with the cli options like this:
+// rustywatch --config custom_config.yaml
+// but by default the configuration read from `rustywatch.yaml`
+pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
     match read(args.config) {
         Ok(config) => match config.validate() {
             Ok(_) => {
                 let tasks = config.workspaces.into_iter().map(|workspace| {
+                    // @NOTE
+                    // all workspace run inside thread as a multi thread.
+                    // using move to transfer ownership between thread.
+                    // then thread running async
                     tokio::spawn(async move {
                         run(
                             workspace.dir,
@@ -27,15 +36,14 @@ pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
                 let results = join_all(tasks).await;
 
+                // @NOTE
+                // results can be return after that value have done in thread.
+                // if the result is ok, the process still continue.
+                // any result must be exit.
                 for result in results {
                     match result {
                         Ok(Ok(_)) => continue,
-                        Ok(Err(e)) => {
-                            error!("Task failed: {}", e);
-                            process::exit(1);
-                        }
-                        Err(e) => {
-                            error!("Task panicked: {}", e);
+                        _ => {
                             process::exit(1);
                         }
                     }
@@ -43,20 +51,16 @@ pub async fn config(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
                 Ok(())
             }
-            Err(e) => {
-                error!("Config validation failed: {}", e);
-                Err(e.into())
-            }
+            Err(e) => Err(e.into()),
         },
-
-        Err(e) => {
-            error!("Missing field workspaces at your config: {}", e);
-            Err(e)
-        }
+        Err(e) => Err(e),
     }
 }
 
-pub async fn cli(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+// @NOTE
+// cli is an options to run rustywatch without configuration.
+// cli take arguments from cli options.
+pub async fn cli(args: Args) -> Result<(), NotifyError> {
     let dir = args.dir.unwrap_or_else(|| ".".to_string());
     let cmd = match args.command {
         Some(command) => CommandType::Multiple(command),
@@ -65,20 +69,19 @@ pub async fn cli(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg).await {
         Ok(_) => process::exit(0),
-        Err(e) => {
-            error!("Error to execute the program: {}", e);
-            process::exit(1)
-        }
+        Err(_) => process::exit(1),
     }
 }
 
+// @NOTE
+// run as a wrapper for watcher.
 pub async fn run(
     dir: String,
     cmd: CommandType,
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
-) -> Result<(), impl std::error::Error + Send + Sync> {
+) -> Result<(), NotifyError> {
     match watcher(dir, cmd, ignore, bin_path, bin_arg).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
@@ -115,6 +118,7 @@ mod tests {
             None,
         )
         .await;
+
         assert!(result.is_ok());
     }
 }

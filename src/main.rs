@@ -17,9 +17,9 @@ async fn main() {
     match Path::new(&args.config).exists() {
         true => run::config(args)
             .await
-            .unwrap_or_else(|e: Box<dyn std::error::Error>| warn!("Error to execute: {}", e)),
+            .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
         false => run::cli(args)
             .await
-            .unwrap_or_else(|e: Box<dyn std::error::Error>| warn!("Error to execute: {}", e)),
+            .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
     }
 }

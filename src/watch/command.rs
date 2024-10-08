@@ -1,10 +1,12 @@
 use std::{
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Error},
     process::{Child, Command, Stdio},
 };
 use tokio::task;
 
-pub async fn exec(cmd: String) -> Result<Child, std::io::Error> {
+// @TODO
+// execute command with blocking mode.
+pub async fn exec(cmd: String) -> Result<Child, Error> {
     task::spawn_blocking(move || match cfg!(windows) {
         true => Command::new("cmd")
             .arg("/C")
@@ -22,15 +24,19 @@ pub async fn exec(cmd: String) -> Result<Child, std::io::Error> {
     .await?
 }
 
-pub fn buf_reader(child: Child) {
-    macro_rules! process_output {
-        ($reader:expr, $print_fn:ident) => {
-            for line in $reader.lines() {
-                $print_fn!("{}", line.unwrap());
-            }
-        };
-    }
+// @TODO
+// macro for printout lines.
+macro_rules! process_output {
+    ($reader:expr, $print_fn:ident) => {
+        for line in $reader.lines() {
+            $print_fn!("{}", line.unwrap());
+        }
+    };
+}
 
+// @TODO
+// buf_reader for printout result as a buffer
+pub fn buf_reader(child: Child) {
     let stdout = child.stdout.unwrap();
     let stderr = child.stderr.unwrap();
     let stdout_reader = BufReader::new(stdout);

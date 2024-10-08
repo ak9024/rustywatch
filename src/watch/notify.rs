@@ -2,11 +2,10 @@ use crate::{
     config::schema::CommandType,
     watch::{filter::is_ignored, reload::reload},
 };
-
 use log::{error, info, warn};
-use notify::{recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
+use notify::{event::ModifyKind, recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
-    process::{self, Child},
+    process::{self, exit, Child},
     result::Result,
     sync::mpsc::channel,
 };
@@ -25,6 +24,8 @@ pub async fn watcher(
 
     let mut running_binary: Option<Child> = None;
 
+    // @NOTE
+    // first time starting reload the binary
     reload(
         &mut running_binary,
         &cmd,
@@ -33,6 +34,8 @@ pub async fn watcher(
     )
     .await;
 
+    // @NOTE
+    // define a channel to store and receive any data process in thread.
     let (tx, rx) = channel();
 
     let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -40,6 +43,8 @@ pub async fn watcher(
     })
     .unwrap();
 
+    // @NOTE
+    // listen the directory with kode recursive
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
             info!("Waching directory: {:?}", dir);
@@ -48,47 +53,45 @@ pub async fn watcher(
             // in testing env need to skip loop.
             // prevent blocking
             if cfg!(test) {
+                warn!("Running in test environment");
                 process::exit(0)
             }
 
-            loop {
-                match rx.recv() {
-                    Ok(Ok(event)) => {
-                        if let EventKind::Modify(modify_kind) = event.kind {
-                            if matches!(modify_kind, notify::event::ModifyKind::Data(_)) {
-                                let paths = event
-                                    .paths
-                                    .iter()
-                                    .filter(|path| !is_ignored(path, &ignore))
-                                    .collect::<Vec<_>>();
+            while let Ok(Ok(event)) = rx.recv() {
+                // @NOTE
+                // if data modified do restarting.
+                if let EventKind::Modify(modify_kind) = event.kind {
+                    if matches!(modify_kind, ModifyKind::Data(_)) {
+                        // @NOTE
+                        // filter that paths based on ignore definition
+                        let paths = event
+                            .paths
+                            .iter()
+                            .filter(|path| !is_ignored(path, &ignore))
+                            .collect::<Vec<_>>();
 
-                                if !paths.is_empty() {
-                                    if let Some(file) = paths.first() {
-                                        info!("File changed: {:?}", file);
-                                    }
-
-                                    reload(
-                                        &mut running_binary,
-                                        &cmd,
-                                        bin_path.as_ref(),
-                                        bin_arg.as_ref(),
-                                    )
-                                    .await;
-                                }
+                        // @NOTE
+                        // if paths not empty please reload the binary.
+                        if !paths.is_empty() {
+                            if let Some(file) = paths.first() {
+                                info!("File changed: {:?}", file);
                             }
+
+                            reload(
+                                &mut running_binary,
+                                &cmd,
+                                bin_path.as_ref(),
+                                bin_arg.as_ref(),
+                            )
+                            .await;
                         }
-                    }
-                    Ok(Err(e)) => {
-                        error!("Watch error: {:?}", e);
-                    }
-                    Err(e) => {
-                        error!("Watch error: {:?}", e);
                     }
                 }
             }
         }
         Err(e) => {
-            error!("Error to watching directory: {:?}", e.paths)
+            error!("Error to watching directory: {:?}", e.paths);
+            exit(1)
         }
     }
 
