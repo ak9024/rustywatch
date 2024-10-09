@@ -2,7 +2,7 @@
   --sl-font: "DejaVu Sans";
   --sl-color-accent-low: #2e2c2b;
   --sl-color-accent: #7aa89f;
-  --sl-color-accent-high: #e6c384;
+  --sl-color-accent-high: #D79921;
   --sl-color-white: #dcd7ba;
   --sl-color-gray-1: #e8e6e3;
   --sl-color-gray-2: #cfcfcf;
@@ -57,16 +57,6 @@ a.site-title {
   color: var(--color-brand);
 }
 
-.demo-image {
-  margin: 0;
-  max-width: 100%;
-  height: auto;
-}
-
-[data-theme="light"] .demo-image {
-  filter: invert(1);
-}
-
 [data-theme="light"] .hero-link {
   filter: invert(1);
 }
@@ -87,4 +77,3 @@ a.site-title {
   color: var(--sl-color-black);
   background-color: var(--sl-color-white);
 }
-
