@@ -9,17 +9,18 @@ const isHomePage = Astro.props.slug === '';
 
 {
   isHomePage ? (
-  <div class="main">
+    <div class="main">
       <h1 class="brand">RustyWatch</h1>
       <p class="title">
         RustyWatch hot reloader for any applications.
       </p>
-      <div class="image-container">
-        <Image class="image" src={rustywatch} alt="rustywatch demo .gif" />
-      </div>
       <p class="description">
         RustyWatch allowing developers to focus on building and improving their code rather than performing repetitive tasks. It enhances productivity by streamlining workflows.
       </p>
+      <div class="image-container shadow-md">
+        <Image class="image" src={rustywatch} alt="rustywatch demo .gif" />
+      </div>
+     
     </div>
 
     <Default {...Astro.props}>
