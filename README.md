@@ -24,6 +24,12 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 - Automatic Directory Monitoring: Detects and tracks new directories without manual intervention.
 - Enhanced Logging: Enjoy colorful and detailed log outputs for easier debugging and monitoring.
 
+## Nix
+
+```shell
+nix-shell
+```
+
 ## Install
 
 > curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
