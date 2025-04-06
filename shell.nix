@@ -26,7 +26,7 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    echo "Rust development environment loaded!"
+    echo "Rust development environment setup!"
     export RUST_BACKTRACE=1
   '';
 
