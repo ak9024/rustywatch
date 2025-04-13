@@ -16,7 +16,7 @@ async fn main() {
 
     // Run the process monitor if the monitor flag is set
     if args.monitor {
-        if let Err(e) = monitor::run() {
+        if let Err(e) = monitor::run(args.config.clone()) {
             warn!("Error running process monitor: {}", e);
         }
         return;

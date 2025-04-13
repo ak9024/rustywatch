@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new("%a %{User-Agent}i"))
             .route("/", web::get().to(index))
     })
-    .bind(("127.0.0.1", 3002))?
+    .bind(("127.0.0.1", 30001))?
     .run()
     .await
 }

@@ -2,7 +2,7 @@ use ratatui::{
     prelude::*,
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
 };
-use sysinfo::System;
+// No need for direct sysinfo imports here
 
 use crate::monitor::app::App;
 
@@ -51,9 +51,10 @@ pub fn draw(f: &mut Frame, app: &App) {
         .style(Style::default().bg(Color::DarkGray))
         .height(1);
 
-    // Get processes and sort by CPU usage
+    // Get processes related to rustywatch services and sort by CPU usage
     let mut processes = app.system.processes()
         .iter()
+        .filter(|(pid, _)| app.service_tracker.is_service_process(&pid.as_u32()))
         .collect::<Vec<_>>();
     
     processes.sort_by(|a, b| {
@@ -87,7 +88,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         .header(header)
         .block(
             Block::default()
-                .title("Process Information")
+                .title("Rustywatch Services")
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded),
         )
@@ -98,7 +99,8 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     // Draw help text
     let help_text = Paragraph::new(Text::styled(
-        "Press [q] to quit | [r] to refresh",
+        format!("Services from: {} | Press [q] to quit | [r] to refresh", 
+                app.config_path),
         Style::default().fg(Color::Gray),
     ))
     .block(Block::default().borders(Borders::TOP))

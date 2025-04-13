@@ -7,31 +7,47 @@ use ratatui::{prelude::*, Terminal};
 use sysinfo::System;
 use std::{error::Error, io, time::{Duration, Instant}};
 
+use crate::monitor::service::ServiceTracker;
+
 use crate::monitor::ui;
 
 pub struct App {
     pub system: System,
+    pub service_tracker: ServiceTracker,
     pub should_quit: bool,
     pub refresh_interval: Duration,
     pub last_refresh: Instant,
+    pub config_path: String,
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new(config_path: String) -> Self {
         let mut system = System::new_all();
         system.refresh_all();
         
+        let mut service_tracker = ServiceTracker::new();
+        if let Err(e) = service_tracker.load_services(&config_path) {
+            eprintln!("Error loading services: {}", e);
+        }
+        service_tracker.find_service_processes();
+        
         App {
             system,
+            service_tracker,
             should_quit: false,
             refresh_interval: Duration::from_secs(1),
             last_refresh: Instant::now(),
+            config_path,
         }
     }
 
     pub fn refresh(&mut self) {
         // Refresh process information
         self.system.refresh_processes();
+        
+        // Update service processes
+        self.service_tracker.find_service_processes();
+        
         self.last_refresh = Instant::now();
     }
 
@@ -44,7 +60,7 @@ impl App {
     }
 }
 
-pub fn run() -> Result<(), Box<dyn Error>> {
+pub fn run(config_path: String) -> Result<(), Box<dyn Error>> {
     // Set up terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -53,7 +69,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // Create app state
-    let mut app = App::new();
+    let mut app = App::new(config_path);
     
     // Main loop
     loop {
