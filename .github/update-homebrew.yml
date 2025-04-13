@@ -1,0 +1,64 @@
+# File: .github/workflows/update-homebrew.yml
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-homebrew-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-rustywatch repo
+        uses: actions/checkout@v3
+        with:
+          repository: ak9024/homebrew-rustywatch
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Get release info
+        id: release_info
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
+          echo "VERSION_NO_V=$VERSION" >> $GITHUB_ENV
+          TARBALL_URL="[https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz"](https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz")
+          echo "TARBALL_URL=$TARBALL_URL" >> $GITHUB_ENV
+          TARBALL_SHA256=$(curl -L $TARBALL_URL | shasum -a 256 | cut -d ' ' -f 1)
+          echo "TARBALL_SHA256=$TARBALL_SHA256" >> $GITHUB_ENV
+
+      - name: Update formula
+        run: |
+          cd homebrew-tap
+          cat > rustywatch.rb << EOF
+          class Rustywatch < Formula
+            desc "Live reloading for any programming languages with process monitoring"
+            homepage "[https://rustywatch.vercel.app/"](https://rustywatch.vercel.app/")
+            url "${{ env.TARBALL_URL }}"
+            sha256 "${{ env.TARBALL_SHA256 }}"
+            license "MIT OR Apache-2.0"
+
+            depends_on "rust" => :build
+
+            def install
+              system "cargo", "install", "--locked", "--root", prefix, "--path", "."
+            end
+
+            test do
+              assert_match "rustywatch ${{ env.VERSION_NO_V }}", shell_output("\#{bin}/rustywatch --version")
+            end
+          end
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          cd homebrew-tap
+          git add rustywatch.rb
+          git commit -m "Update rustywatch to ${{ env.VERSION }}"
+          git push origin main
