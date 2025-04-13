@@ -1,14 +1,4 @@
-- name: Get release info
-  id: release_info
-  run: |
-    echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-    VERSION=${GITHUB_REF#refs/tags/}
-    VERSION=${VERSION#v}
-    echo "VERSION_NO_V=$VERSION" >> $GITHUB_ENV
-    TARBALL_URL="[https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz"](https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz")
-    echo "TARBALL_URL=$TARBALL_URL" >> $GITHUB_ENV
-    TARBALL_SHA256=$(curl -L $TARBALL_URL | shasum -a 256 | cut -d ' ' -f 1)
-    echo "TARBALL_SHA256=$TARBALL_SHA256" >> $GITHUB_ENV# File: .github/workflows/update-homebrew.yml
+# File: .github/workflows/update-homebrew.yml
 name: Update Homebrew Formula
 
 on:
@@ -38,7 +28,7 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/}
           VERSION=${VERSION#v}
           echo "VERSION_NO_V=$VERSION" >> $GITHUB_ENV
-          TARBALL_URL="[https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz"](https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz")
+          TARBALL_URL="https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz"
           echo "TARBALL_URL=$TARBALL_URL" >> $GITHUB_ENV
           TARBALL_SHA256=$(curl -L $TARBALL_URL | shasum -a 256 | cut -d ' ' -f 1)
           echo "TARBALL_SHA256=$TARBALL_SHA256" >> $GITHUB_ENV
@@ -49,7 +39,7 @@ jobs:
           cat > rustywatch.rb << EOF
           class Rustywatch < Formula
             desc "Live reloading for any programming languages with process monitoring"
-            homepage "[https://rustywatch.vercel.app/"](https://rustywatch.vercel.app/")
+            homepage "https://rustywatch.vercel.app/"
             url "${{ env.TARBALL_URL }}"
             sha256 "${{ env.TARBALL_SHA256 }}"
             license "MIT OR Apache-2.0"
@@ -61,7 +51,7 @@ jobs:
             end
 
             test do
-              assert_match "rustywatch ${{ env.VERSION_NO_V }}", shell_output("\#{bin}/rustywatch --version")
+              assert_match "rustywatch ${{ env.VERSION_NO_V }}", shell_output("#{bin}/rustywatch --version")
             end
           end
           EOF
