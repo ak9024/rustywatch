@@ -1,4 +1,14 @@
-# File: .github/workflows/update-homebrew.yml
+- name: Get release info
+  id: release_info
+  run: |
+    echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+    VERSION=${GITHUB_REF#refs/tags/}
+    VERSION=${VERSION#v}
+    echo "VERSION_NO_V=$VERSION" >> $GITHUB_ENV
+    TARBALL_URL="[https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz"](https://github.com/ak9024/rustywatch/archive/refs/tags/${GITHUB_REF#refs/tags/}.tar.gz")
+    echo "TARBALL_URL=$TARBALL_URL" >> $GITHUB_ENV
+    TARBALL_SHA256=$(curl -L $TARBALL_URL | shasum -a 256 | cut -d ' ' -f 1)
+    echo "TARBALL_SHA256=$TARBALL_SHA256" >> $GITHUB_ENV# File: .github/workflows/update-homebrew.yml
 name: Update Homebrew Formula
 
 on:
