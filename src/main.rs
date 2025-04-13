@@ -2,7 +2,7 @@ use clap::Parser;
 use log::warn;
 use rustywatch::{
     args::{self, Args},
-    logger, run,
+    logger, monitor, run,
 };
 use std::path::Path;
 
@@ -14,6 +14,15 @@ async fn main() {
 
     let args = Args::parse();
 
+    // Run the process monitor if the monitor flag is set
+    if args.monitor {
+        if let Err(e) = monitor::run() {
+            warn!("Error running process monitor: {}", e);
+        }
+        return;
+    }
+
+    // Otherwise run the file watcher
     match Path::new(&args.config).exists() {
         true => run::config(args)
             .await

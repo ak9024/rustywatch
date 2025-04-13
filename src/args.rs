@@ -46,6 +46,9 @@ pub struct Args {
 
     #[arg(long = "cfg", default_value_t = String::from("rustywatch.yaml"))]
     pub config: String,
+    
+    #[arg(long = "monitor", help = "Show process monitoring dashboard")]
+    pub monitor: bool,
 }
 
 #[cfg(test)]
