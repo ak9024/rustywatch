@@ -26,10 +26,21 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 
 ## Install
 
+### Using Cargo
+
 > curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 ```shell
 cargo install rustywatch
+```
+
+### Using Homebrew
+
+```shell
+# Add the tap
+brew tap ak9024/rustywatch
+# Install rustywatch
+brew install rustywatch
 ```
 
 ## Usage
