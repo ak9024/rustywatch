@@ -7,7 +7,7 @@
 ![Crates.io Version](https://img.shields.io/crates/v/rustywatch)
 ![Codecov](https://img.shields.io/codecov/c/github/ak9024/rustywatch)
 
-[![asciicast](https://asciinema.org/a/678683.svg)](https://asciinema.org/a/678683)
+![RustyWatch](rustywatch.png)
 
 ## Live Reloading Built with Rust
 
@@ -15,13 +15,14 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 
 ## Features
 
-- Universal Live Reloading: Seamlessly supports live reloading for any programming language.
-- Real-time Binary Reloading: Automatically reloads your binaries in real-time.
-- Monorepo Development Support: Effortlessly manage monorepo projects with built-in support.
-- Multi-Project Execution: Run multiple projects concurrently with a single command.
-- Optimized Build Process: Efficient and highly optimized for faster builds and reloading.
-- Automatic Directory Monitoring: Detects and tracks new directories without manual intervention.
-- Enhanced Logging: Enjoy colorful and detailed log outputs for easier debugging and monitoring.
+- **Universal Live Reloading:** Supports live reloading for any programming language (Go, Rust, Node.js, Python, and more).
+- **Real-time Binary Reloading:** Automatically rebuilds and restarts your binaries on file changes.
+- **Monorepo & Multi-Project Support:** Run multiple projects concurrently with a single command.
+- **Process Monitoring Dashboard:** Built-in terminal UI (`--monitor`) with real-time CPU/memory tracking, process management, and system metrics.
+- **Smart File Filtering:** Intelligent ignore patterns with glob matching for common build artifacts (.git, node_modules, target/, etc.).
+- **Async & High Performance:** Non-blocking async I/O with Tokio, event debouncing, and efficient data structures.
+- **Cross-Platform:** Works on macOS, Linux, and Windows.
+- **Flexible Configuration:** YAML-based config or CLI arguments for quick usage.
 
 ## Install
 
@@ -30,7 +31,7 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 > curl --proto '=https' --tlsv1.2 -sSf <https://sh.rustup.rs> | sh
 
 ```shell
-cargo install rustywatch
+cargo install --git https://github.com/ak9024/rustywatch rustywatch
 ```
 
 ### Using Homebrew
