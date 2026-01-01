@@ -1,11 +1,10 @@
 # RustyWatch
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/cd.yml?style=flat&label=deployment) 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ak9024/rustywatch/ci.yml?branch=main&style=plastic&label=lint) ![Crates.io Total Downloads](https://img.shields.io/crates/d/rustywatch) 
-![Crates.io License](https://img.shields.io/crates/l/rustywatch) 
-![docs.rs](https://img.shields.io/docsrs/rustywatch?style=social) ![Crates.io Size](https://img.shields.io/crates/size/rustywatch?style=flat) ![GitHub Repo stars](https://img.shields.io/github/stars/ak9024/rustywatch) 
-![GitHub Tag](https://img.shields.io/github/v/tag/ak9024/rustywatch) 
-![Crates.io Version](https://img.shields.io/crates/v/rustywatch) 
+![Crates.io Total Downloads](https://img.shields.io/crates/d/rustywatch)
+![Crates.io License](https://img.shields.io/crates/l/rustywatch)
+![docs.rs](https://img.shields.io/docsrs/rustywatch?style=social) ![Crates.io Size](https://img.shields.io/crates/size/rustywatch?style=flat) ![GitHub Repo stars](https://img.shields.io/github/stars/ak9024/rustywatch)
+![GitHub Tag](https://img.shields.io/github/v/tag/ak9024/rustywatch)
+![Crates.io Version](https://img.shields.io/crates/v/rustywatch)
 ![Codecov](https://img.shields.io/codecov/c/github/ak9024/rustywatch)
 
 [![asciicast](https://asciinema.org/a/678683.svg)](https://asciinema.org/a/678683)
@@ -28,7 +27,7 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 
 ### Using Cargo
 
-> curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+> curl --proto '=https' --tlsv1.2 -sSf <https://sh.rustup.rs> | sh
 
 ```shell
 cargo install rustywatch
@@ -50,7 +49,6 @@ To start the project, ensure you have a `rustywatch.yaml` configuration file in 
 ## Configuration
 
 The default configuration file is named `rustywatch.yaml`, and it must be located in your project's root directory. For a reference configuration, please see the example below:
-
 
 ```yaml
 # define workspaces, rustywatch can be handled multi project at the same time.
