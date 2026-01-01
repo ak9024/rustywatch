@@ -1,11 +1,46 @@
 use crate::{
     config::schema::CommandType,
-    watch::{binary, command, command::buf_reader},
+    watch::{binary, command},
 };
 use binary::{exists, remove, restart};
-use command::exec;
+use command::{buf_reader_async, exec};
+use futures::future::join_all;
 use log::{error, info};
 use std::process::Child;
+
+/// Execute commands based on CommandType
+async fn execute_commands(cmd: &CommandType) {
+    match cmd {
+        CommandType::Single(c) => {
+            match exec(c).await {
+                Ok(child) => {
+                    if let Err(e) = buf_reader_async(child).await {
+                        error!("Failed to read command output: {}", e);
+                    }
+                }
+                Err(e) => error!("Failed to run command: {}", e),
+            }
+        }
+        CommandType::Multiple(cmds) => {
+            // Execute all commands in parallel
+            let tasks: Vec<_> = cmds
+                .iter()
+                .map(|c| async move {
+                    match exec(c).await {
+                        Ok(child) => {
+                            if let Err(e) = buf_reader_async(child).await {
+                                error!("Failed to read command output: {}", e);
+                            }
+                        }
+                        Err(e) => error!("Failed to run command: {}", e),
+                    }
+                })
+                .collect();
+
+            join_all(tasks).await;
+        }
+    }
+}
 
 pub async fn reload(
     running_binary: &mut Option<Child>,
@@ -13,52 +48,27 @@ pub async fn reload(
     bin_path: Option<&String>,
     bin_arg: Option<&Vec<String>>,
 ) {
-    // @NOTE
-    // restart with killed old binary.
-    match running_binary {
-        Some(ref mut child) => match child.kill() {
+    // Kill old binary if running
+    if let Some(ref mut child) = running_binary {
+        match child.kill() {
             Ok(_) => info!("Restarting..."),
             Err(e) => error!("Failed to restart binary: {:?}", e.to_string()),
-        },
-        None => (),
+        }
     }
 
-    // @NOTE
-    // execute bin_path with option:
-    // if not exists execute.
-    // then any skip, just execute command.
     match bin_path {
         Some(bin_path) => {
             if remove(bin_path) {
                 if !exists(bin_path) {
-                    match cmd {
-                        CommandType::Single(cmd) => match exec(cmd.clone()).await {
-                            Ok(child) => buf_reader(child),
-                            Err(e) => {
-                                error!("Failed to run command: {}", e.to_string())
-                            }
-                        },
-                        CommandType::Multiple(cmds) => {
-                            for cmd in cmds {
-                                match exec(cmd.clone()).await {
-                                    Ok(child) => buf_reader(child),
-                                    Err(e) => {
-                                        error!("Failed to run command: {}", e.to_string())
-                                    }
-                                }
-                            }
-                        }
-                    };
+                    execute_commands(cmd).await;
                 }
 
-                // @NOTE
-                // prevent restart in test environment
+                // Prevent restart in test environment
                 if cfg!(test) {
                     return;
                 }
 
-                // @NOTE
-                // restart the binary
+                // Restart the binary
                 match restart(bin_path, bin_arg) {
                     Ok(child) => *running_binary = Some(child),
                     Err(e) => {
@@ -69,27 +79,7 @@ pub async fn reload(
                 }
             }
         }
-
-        // @NOTE
-        // if bin_path not defined, just execute command.
-        None => match cmd {
-            CommandType::Single(cmd) => match exec(cmd.clone()).await {
-                Ok(child) => buf_reader(child),
-                Err(e) => {
-                    error!("Failed to run command: {}", e.to_string())
-                }
-            },
-            CommandType::Multiple(cmds) => {
-                for cmd in cmds {
-                    match exec(cmd.clone()).await {
-                        Ok(child) => buf_reader(child),
-                        Err(e) => {
-                            error!("Failed to run command: {}", e.to_string())
-                        }
-                    }
-                }
-            }
-        },
+        None => execute_commands(cmd).await,
     }
 }
 
@@ -124,5 +114,20 @@ mod tests {
         )
         .await;
         assert!(running_binary.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_reload_with_multiple_commands() {
+        let mut running_binary = None;
+        let cmd = CommandType::Multiple(vec![
+            "echo first".to_string(),
+            "echo second".to_string(),
+            "echo third".to_string(),
+        ]);
+        let bin_path = None;
+        let bin_arg = None;
+
+        reload(&mut running_binary, &cmd, bin_path, bin_arg).await;
+        assert!(running_binary.is_none());
     }
 }

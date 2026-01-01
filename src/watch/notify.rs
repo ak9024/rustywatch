@@ -1,14 +1,20 @@
 use crate::{
     config::schema::CommandType,
-    watch::{filter::is_ignored, reload::reload},
+    watch::{
+        debouncer::{Debouncer, DebouncerConfig},
+        filter::is_ignored,
+        ignore_defaults::merge_with_defaults,
+        reload_controller::ReloadController,
+    },
 };
 use log::{error, info, warn};
 use notify::{event::ModifyKind, recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
-    process::{self, exit, Child},
+    process::{self, exit},
     result::Result,
     sync::mpsc::channel,
 };
+use tokio::sync::mpsc as tokio_mpsc;
 
 pub async fn watcher(
     dir: String,
@@ -17,25 +23,22 @@ pub async fn watcher(
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
 ) -> notify::Result<()> {
-    let ignore = ignore.unwrap_or_else(|| {
-        warn!("RustyWatch provide options to ignored specific directory or files to be ignored.");
-        vec![".git/".to_string()]
-    });
+    let ignore = merge_with_defaults(ignore);
 
-    let mut running_binary: Option<Child> = None;
+    // Create reload controller for non-blocking reloads
+    let controller = ReloadController::new(cmd, bin_path, bin_arg);
 
-    // @NOTE
-    // first time starting reload the binary
-    reload(
-        &mut running_binary,
-        &cmd,
-        bin_path.as_ref(),
-        bin_arg.as_ref(),
-    )
-    .await;
+    // Initial reload (blocking for startup)
+    controller.initial_reload().await;
 
-    // @NOTE
-    // define a channel to store and receive any data process in thread.
+    // Create debouncer for batching file changes
+    let debouncer_config = DebouncerConfig::default();
+    let (debouncer, mut debounce_rx) = Debouncer::new(debouncer_config);
+
+    // Create tokio channel for forwarding events from the watcher thread
+    let (event_tx, mut event_rx) = tokio_mpsc::channel::<Vec<std::path::PathBuf>>(100);
+
+    // Define a channel to receive file system events (std::sync for notify callback)
     let (tx, rx) = channel();
 
     let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
@@ -43,47 +46,54 @@ pub async fn watcher(
     })
     .unwrap();
 
-    // @NOTE
-    // listen the directory with recursive mode
+    // Spawn a blocking task to forward events from std::sync channel to tokio channel
+    let ignore_clone = ignore.clone();
+    std::thread::spawn(move || {
+        while let Ok(Ok(event)) = rx.recv() {
+            if let EventKind::Modify(modify_kind) = event.kind {
+                if matches!(modify_kind, ModifyKind::Data(_)) {
+                    let filtered_paths: Vec<_> = event
+                        .paths
+                        .into_iter()
+                        .filter(|path| !is_ignored(path, &ignore_clone))
+                        .collect();
+
+                    if !filtered_paths.is_empty() {
+                        let _ = event_tx.blocking_send(filtered_paths);
+                    }
+                }
+            }
+        }
+    });
+
+    // Listen to the directory with recursive mode
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
             info!("Waching directory: {:?}", dir);
 
-            // @NOTE
-            // in testing env need to skip loop.
-            // prevent blocking
+            // In testing env, skip the loop to prevent blocking
             if cfg!(test) {
                 warn!("Running in test environment");
                 process::exit(0)
             }
 
-            while let Ok(Ok(event)) = rx.recv() {
-                // @NOTE
-                // if data modified do restarting.
-                if let EventKind::Modify(modify_kind) = event.kind {
-                    if matches!(modify_kind, ModifyKind::Data(_)) {
-                        // @NOTE
-                        // filter that paths based on ignore definition
-                        let paths = event
-                            .paths
-                            .iter()
-                            .filter(|path| !is_ignored(path, &ignore))
-                            .collect::<Vec<_>>();
-
-                        // @NOTE
-                        // if paths not empty please reload the binary.
-                        if !paths.is_empty() {
-                            if let Some(file) = paths.first() {
-                                info!("File changed: {:?}", file);
+            // Main event loop using tokio::select! for concurrent handling
+            loop {
+                tokio::select! {
+                    // Handle debounced file change batches
+                    Some(batch) = debounce_rx.recv() => {
+                        if !batch.is_empty() {
+                            if let Some(file) = batch.first() {
+                                info!("Files changed ({}): {:?}", batch.len(), file);
                             }
-
-                            reload(
-                                &mut running_binary,
-                                &cmd,
-                                bin_path.as_ref(),
-                                bin_arg.as_ref(),
-                            )
-                            .await;
+                            // Non-blocking reload request
+                            controller.request_reload().await;
+                        }
+                    }
+                    // Handle forwarded file system events
+                    Some(paths) = event_rx.recv() => {
+                        for path in paths {
+                            debouncer.add_path(path).await;
                         }
                     }
                 }
@@ -95,6 +105,7 @@ pub async fn watcher(
         }
     }
 
+    #[allow(unreachable_code)]
     Ok(())
 }
 
