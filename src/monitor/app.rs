@@ -24,13 +24,14 @@ impl App {
     pub fn new(config_path: String) -> Self {
         let mut system = System::new_all();
         system.refresh_all();
-        
+
         let mut service_tracker = ServiceTracker::new();
         if let Err(e) = service_tracker.load_services(&config_path) {
             eprintln!("Error loading services: {}", e);
         }
-        service_tracker.find_service_processes();
-        
+        // Initial discovery using sysinfo
+        service_tracker.discover_service_processes(&system);
+
         App {
             system,
             service_tracker,
@@ -44,10 +45,10 @@ impl App {
     pub fn refresh(&mut self) {
         // Refresh process information
         self.system.refresh_processes();
-        
-        // Update service processes
-        self.service_tracker.find_service_processes();
-        
+
+        // Smart refresh: incremental most of the time, full scan periodically
+        self.service_tracker.smart_refresh(&self.system);
+
         self.last_refresh = Instant::now();
     }
 

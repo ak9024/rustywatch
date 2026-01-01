@@ -13,7 +13,7 @@ func main() {
 	app.Use(requestid.New())
 
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("Hello, World!....")
+		return c.SendString("Hello World!....")
 	})
 
 	app.Listen(":3000")
