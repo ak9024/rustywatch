@@ -102,6 +102,7 @@ mod tests {
             ignore: None,
             bin_path: None,
             bin_arg: None,
+            monitor: false,
         };
 
         let result = cli(args).await;

@@ -107,3 +107,86 @@ pub fn run(config_path: String) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    fn create_test_config() -> NamedTempFile {
+        let config_content = r#"
+workspaces:
+  - dir: "."
+    cmd: "echo test"
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(config_content.as_bytes()).unwrap();
+        temp_file
+    }
+
+    #[test]
+    fn test_app_new() {
+        let temp_file = create_test_config();
+        let config_path = temp_file.path().to_str().unwrap().to_string();
+
+        let app = App::new(config_path.clone());
+
+        assert!(!app.should_quit);
+        assert_eq!(app.config_path, config_path);
+        assert_eq!(app.refresh_interval, Duration::from_secs(1));
+    }
+
+    #[test]
+    fn test_on_key_quit() {
+        let temp_file = create_test_config();
+        let config_path = temp_file.path().to_str().unwrap().to_string();
+
+        let mut app = App::new(config_path);
+        assert!(!app.should_quit);
+
+        app.on_key(KeyCode::Char('q'));
+        assert!(app.should_quit);
+    }
+
+    #[test]
+    fn test_on_key_refresh() {
+        let temp_file = create_test_config();
+        let config_path = temp_file.path().to_str().unwrap().to_string();
+
+        let mut app = App::new(config_path);
+        let initial_refresh = app.last_refresh;
+
+        // Wait a bit to ensure time difference
+        std::thread::sleep(Duration::from_millis(10));
+
+        app.on_key(KeyCode::Char('r'));
+
+        // last_refresh should be updated
+        assert!(app.last_refresh > initial_refresh);
+        assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn test_on_key_unknown() {
+        let temp_file = create_test_config();
+        let config_path = temp_file.path().to_str().unwrap().to_string();
+
+        let mut app = App::new(config_path);
+        let initial_refresh = app.last_refresh;
+
+        app.on_key(KeyCode::Char('x'));
+
+        assert!(!app.should_quit);
+        assert_eq!(app.last_refresh, initial_refresh);
+    }
+
+    #[test]
+    fn test_app_with_nonexistent_config() {
+        // App should handle missing config gracefully
+        let app = App::new("/nonexistent/config.yaml".to_string());
+
+        assert!(!app.should_quit);
+        assert!(app.service_tracker.service_commands.is_empty());
+    }
+}

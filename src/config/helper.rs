@@ -68,4 +68,56 @@ workspaces:
         assert!(workspace2.bin_path.is_none());
         assert!(workspace2.bin_arg.is_none());
     }
+
+    #[test]
+    fn test_read_config_file_not_found() {
+        let result = read("/nonexistent/path/to/config.yaml".to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_config_invalid_yaml() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let invalid_yaml = r#"
+workspaces:
+  - dir: "/path/to/directory"
+    cmd: [invalid yaml without closing bracket
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(invalid_yaml.as_bytes()).unwrap();
+
+        let result = read(temp_file.path().to_str().unwrap().to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_config_missing_required_fields() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        // Config missing 'dir' field which is required
+        let incomplete_yaml = r#"
+workspaces:
+  - cmd: "some_command"
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(incomplete_yaml.as_bytes()).unwrap();
+
+        let result = read(temp_file.path().to_str().unwrap().to_string());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_read_config_empty_file() {
+        use std::io::Write;
+        use tempfile::NamedTempFile;
+
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(b"").unwrap();
+
+        let result = read(temp_file.path().to_str().unwrap().to_string());
+        assert!(result.is_err());
+    }
 }
