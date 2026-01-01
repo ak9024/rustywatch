@@ -122,4 +122,98 @@ mod tests {
 
         watch_task.abort();
     }
+
+    #[tokio::test]
+    async fn test_watch_with_default_ignore() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+
+        let cmd = CommandType::Single("echo".to_string());
+        // Pass None to use default ignore patterns
+        let ignore: Option<Vec<String>> = None;
+
+        let watch_task = tokio::spawn(async move {
+            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+        });
+
+        watch_task.abort();
+    }
+
+    #[tokio::test]
+    async fn test_watch_with_multiple_commands() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+
+        let cmd = CommandType::Multiple(vec!["echo first".to_string(), "echo second".to_string()]);
+        let ignore = Some(vec![".git".to_string()]);
+
+        let watch_task = tokio::spawn(async move {
+            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+        });
+
+        watch_task.abort();
+    }
+
+    #[tokio::test]
+    async fn test_watch_with_bin_path() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+
+        let cmd = CommandType::Single("echo build".to_string());
+        let ignore = Some(vec![".git".to_string()]);
+        let bin_path = Some("/tmp/test_binary".to_string());
+
+        let watch_task = tokio::spawn(async move {
+            watcher(dir_path, cmd, ignore, bin_path, None).await.unwrap();
+        });
+
+        watch_task.abort();
+    }
+
+    #[tokio::test]
+    async fn test_watch_with_bin_args() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+
+        let cmd = CommandType::Single("echo build".to_string());
+        let ignore = Some(vec![".git".to_string()]);
+        let bin_path = Some("/tmp/test_binary".to_string());
+        let bin_arg = Some(vec!["--port".to_string(), "8080".to_string()]);
+
+        let watch_task = tokio::spawn(async move {
+            watcher(dir_path, cmd, ignore, bin_path, bin_arg).await.unwrap();
+        });
+
+        watch_task.abort();
+    }
+
+    #[tokio::test]
+    async fn test_watch_with_multiple_ignore_patterns() {
+        let temp_dir = tempdir().unwrap();
+        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+
+        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+
+        let cmd = CommandType::Single("echo".to_string());
+        let ignore = Some(vec![
+            ".git".to_string(),
+            "node_modules".to_string(),
+            "target".to_string(),
+            "*.log".to_string(),
+        ]);
+
+        let watch_task = tokio::spawn(async move {
+            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+        });
+
+        watch_task.abort();
+    }
 }

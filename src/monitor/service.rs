@@ -122,3 +122,110 @@ impl ServiceTracker {
         self.service_pids.contains(pid)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_service_tracker_new() {
+        let tracker = ServiceTracker::new();
+        assert!(tracker.service_pids.is_empty());
+        assert!(tracker.service_commands.is_empty());
+        assert!(tracker.service_bin_paths.is_empty());
+    }
+
+    #[test]
+    fn test_load_services_with_single_command() {
+        let mut tracker = ServiceTracker::new();
+
+        let config_content = r#"
+workspaces:
+  - dir: "/path/to/project"
+    cmd: "cargo run"
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(config_content.as_bytes()).unwrap();
+
+        let result = tracker.load_services(temp_file.path().to_str().unwrap());
+        assert!(result.is_ok());
+        assert!(tracker.service_commands.contains(&"cargo run".to_string()));
+    }
+
+    #[test]
+    fn test_load_services_with_multiple_commands() {
+        let mut tracker = ServiceTracker::new();
+
+        let config_content = r#"
+workspaces:
+  - dir: "/path/to/project"
+    cmd:
+      - "npm install"
+      - "npm start"
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(config_content.as_bytes()).unwrap();
+
+        let result = tracker.load_services(temp_file.path().to_str().unwrap());
+        assert!(result.is_ok());
+        assert!(tracker.service_commands.contains(&"npm install".to_string()));
+        assert!(tracker.service_commands.contains(&"npm start".to_string()));
+    }
+
+    #[test]
+    fn test_load_services_with_bin_path() {
+        let mut tracker = ServiceTracker::new();
+
+        let config_content = r#"
+workspaces:
+  - dir: "/path/to/project"
+    cmd: "cargo build"
+    bin_path: "/path/to/bin/myapp"
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(config_content.as_bytes()).unwrap();
+
+        let result = tracker.load_services(temp_file.path().to_str().unwrap());
+        assert!(result.is_ok());
+        assert!(tracker.service_bin_paths.contains(&"/path/to/bin/myapp".to_string()));
+        assert!(tracker.service_bin_paths.contains(&"myapp".to_string()));
+    }
+
+    #[test]
+    fn test_load_services_file_not_found() {
+        let mut tracker = ServiceTracker::new();
+        let result = tracker.load_services("/nonexistent/path/config.yaml");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_is_service_process() {
+        let mut tracker = ServiceTracker::new();
+        tracker.service_pids.insert(1234);
+        tracker.service_pids.insert(5678);
+
+        assert!(tracker.is_service_process(&1234));
+        assert!(tracker.is_service_process(&5678));
+        assert!(!tracker.is_service_process(&9999));
+    }
+
+    #[test]
+    fn test_load_services_with_semicolon_commands() {
+        let mut tracker = ServiceTracker::new();
+
+        let config_content = r#"
+workspaces:
+  - dir: "/path/to/project"
+    cmd: "npm install; npm start"
+"#;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(config_content.as_bytes()).unwrap();
+
+        let result = tracker.load_services(temp_file.path().to_str().unwrap());
+        assert!(result.is_ok());
+        assert!(tracker.service_commands.contains(&"npm install".to_string()));
+        assert!(tracker.service_commands.contains(&"npm start".to_string()));
+    }
+}

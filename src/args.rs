@@ -64,6 +64,7 @@ mod tests {
             bin_path: None,
             bin_arg: Some(vec![String::from("server")]),
             config: String::from("rustywatch.yaml"),
+            monitor: false,
         };
 
         assert_eq!(args.dir.unwrap(), "/test/dir");

@@ -119,6 +119,40 @@ rustywatch --help
 cargo install rustywatch
 ```
 
+## Testing
+
+### Run all tests
+
+```shell
+cargo test
+```
+
+### Run unit tests only
+
+```shell
+cargo test --lib
+```
+
+### Run integration tests only
+
+```shell
+cargo test --test '*'
+```
+
+### Run with code coverage
+
+> Requires `cargo-llvm-cov`: `cargo install cargo-llvm-cov`
+
+```shell
+cargo llvm-cov
+```
+
+### Run benchmarks
+
+```shell
+cargo bench
+```
+
 ## Support languages
 
 - Go
