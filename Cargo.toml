@@ -45,11 +45,13 @@ globset = "0.4"
 log = "0.4.22"
 notify = "6.1.1"
 serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0"
 serde_yaml = "0.9.34"
 sysinfo = "0.30.7"
 ratatui = "0.26.1"
 crossterm = "0.27.0"
 tokio = { version = "1.40.0", features = ["full"] }
+inquire = { version = "0.7", default-features = false, features = ["crossterm"] }
 
 [dev-dependencies]
 criterion = "0.5.1"

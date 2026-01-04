@@ -1,8 +1,8 @@
 use clap::Parser;
 use log::warn;
 use rustywatch::{
-    args::{self, Args},
-    logger, monitor, run,
+    args::{self, Cli, Commands},
+    init, logger, monitor, run,
 };
 use std::path::Path;
 
@@ -12,23 +12,37 @@ async fn main() {
 
     logger::setup_logging();
 
-    let args = Args::parse();
+    let cli = Cli::parse();
 
-    // Run the process monitor if the monitor flag is set
-    if args.monitor {
-        if let Err(e) = monitor::run(args.config.clone()) {
-            warn!("Error running process monitor: {}", e);
+    // Handle subcommands
+    match cli.command {
+        Some(Commands::Init(init_args)) => {
+            if let Err(e) = init::run(init_args) {
+                warn!("Error during initialization: {}", e);
+                std::process::exit(1);
+            }
         }
-        return;
-    }
+        None => {
+            // No subcommand - use watch args (backward compatible)
+            let args = cli.watch_args;
 
-    // Otherwise run the file watcher
-    match Path::new(&args.config).exists() {
-        true => run::config(args)
-            .await
-            .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
-        false => run::cli(args)
-            .await
-            .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
+            // Run the process monitor if the monitor flag is set
+            if args.monitor {
+                if let Err(e) = monitor::run(args.config.clone()) {
+                    warn!("Error running process monitor: {}", e);
+                }
+                return;
+            }
+
+            // Otherwise run the file watcher
+            match Path::new(&args.config).exists() {
+                true => run::config(args)
+                    .await
+                    .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
+                false => run::cli(args)
+                    .await
+                    .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
+            }
+        }
     }
 }

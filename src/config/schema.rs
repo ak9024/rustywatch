@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Workspace {
     pub dir: String,
     #[serde(deserialize_with = "deserialize_cmd")]
@@ -10,14 +10,14 @@ pub struct Workspace {
     pub bin_arg: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 pub enum CommandType {
     Single(String),
     Multiple(Vec<String>),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub workspaces: Vec<Workspace>,
 }
