@@ -57,15 +57,15 @@ workspaces:
   # first project binary apps
   - dir: 'golang-project' # define path directory
     cmd: # define command to build binary
-    - cp ./golang-project/.env .env
     - |
       cd ./golang-project;
       go build main.go
-    bin_path: './golang-projec/main' # define path for binary location
+    bin_path: './golang-project/main' # define path for binary location
     bin_arg: # define arguments
      - server
     ignore:
      - '.git'
+    env_file: '.env' # load environment variables from golang-project/.env
   # second project binary apps
   - dir: 'rust-project'
     cmd:
@@ -73,6 +73,7 @@ workspaces:
       cd ./rust-project;
       cargo build
     bin_path: './rust-project/target/debug/rust-project'
+    env_file: '/.env' # load environment variables from project root .env
   # third project non binary apps
   - dir: 'nodejs-project'
     cmd: 'cd nodejs-project;npm run dev'

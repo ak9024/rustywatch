@@ -40,6 +40,8 @@ workspaces:
     # ignore or skip to listen from RustyWatch
     ignore:
       - '.git/'
+    # optional: load environment variables from .env file
+    env_file: '.env'
 
   # Add another projects
   - dir: <your_dir>
@@ -47,6 +49,7 @@ workspaces:
     bin_path: <your_bin_location>
     bin_arg: <your_bin_arguments>
     ignore: <ignore>
+    env_file: <path_to_env_file>
 ```
 
 **Usage**
