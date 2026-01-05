@@ -22,32 +22,22 @@ pub fn interactive_init(args: InitArgs) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    // Auto-detect project type
-    let current_dir = Path::new(".");
-    let detected = detect::detect_project_type(current_dir);
-    let project_name = detect::detect_project_name(current_dir);
-
-    // Determine project type
-    let project_type = if args.yes {
-        detected.unwrap_or(templates::ProjectType::Other)
+    // Collect workspaces
+    let workspaces = if args.yes {
+        // Non-interactive mode: single workspace with auto-detected defaults
+        let current_dir = Path::new(".");
+        let detected = detect::detect_project_type(current_dir);
+        let project_name = detect::detect_project_name(current_dir);
+        let project_type = detected.unwrap_or(templates::ProjectType::Other);
+        let template = templates::ProjectTemplate::for_type(project_type);
+        vec![template.to_workspace(project_name.as_deref())]
     } else {
-        select_project_type(detected)?
-    };
-
-    // Get template defaults
-    let template = templates::ProjectTemplate::for_type(project_type);
-
-    // Collect user input (or use defaults with --yes)
-    let workspace = if args.yes {
-        template.to_workspace(project_name.as_deref())
-    } else {
-        prompt_workspace_config(&template, project_name.as_deref())?
+        // Interactive mode: allow multiple workspaces
+        collect_workspaces()?
     };
 
     // Generate config
-    let config = Config {
-        workspaces: vec![workspace],
-    };
+    let config = Config { workspaces };
 
     // Show preview if interactive
     if !args.yes {
@@ -72,6 +62,48 @@ pub fn interactive_init(args: InitArgs) -> Result<(), Box<dyn Error>> {
     println!("Run 'rustywatch' to start watching for changes.");
 
     Ok(())
+}
+
+/// Collect multiple workspaces interactively
+fn collect_workspaces() -> Result<Vec<Workspace>, Box<dyn Error>> {
+    let mut workspaces: Vec<Workspace> = Vec::new();
+    let mut workspace_num = 1;
+
+    loop {
+        println!("\n--- Workspace {} ---", workspace_num);
+
+        // For first workspace, use current directory; for subsequent, prompt for directory
+        let workspace_dir = if workspace_num == 1 {
+            Path::new(".").to_path_buf()
+        } else {
+            prompt_workspace_directory()?
+        };
+
+        // Detect project type and name for the workspace directory
+        let detected = detect::detect_project_type(&workspace_dir);
+        let project_name = detect::detect_project_name(&workspace_dir);
+
+        // Let user select/confirm project type
+        let project_type = select_project_type(detected)?;
+        let template = templates::ProjectTemplate::for_type(project_type);
+
+        // Prompt for workspace configuration
+        let workspace_dir_opt = if workspace_num == 1 {
+            None // Use template default for first workspace
+        } else {
+            Some(workspace_dir.as_path())
+        };
+        let workspace = prompt_workspace_config(&template, project_name.as_deref(), workspace_dir_opt)?;
+        workspaces.push(workspace);
+
+        // Ask if user wants to add another workspace
+        if !prompt_add_another()? {
+            break;
+        }
+        workspace_num += 1;
+    }
+
+    Ok(workspaces)
 }
 
 fn select_project_type(
@@ -106,10 +138,15 @@ fn select_project_type(
 fn prompt_workspace_config(
     template: &templates::ProjectTemplate,
     project_name: Option<&str>,
+    workspace_dir: Option<&Path>,
 ) -> Result<Workspace, Box<dyn Error>> {
-    // Watch directory
+    // Watch directory - use workspace_dir if provided, otherwise template default
+    let default_dir = workspace_dir
+        .and_then(|p| p.to_str())
+        .unwrap_or(template.default_watch_dir);
+
     let dir = Text::new("Watch directory:")
-        .with_default(template.default_watch_dir)
+        .with_default(default_dir)
         .with_help_message("Directory to watch for file changes")
         .prompt()?;
 
@@ -174,4 +211,24 @@ fn prompt_workspace_config(
         bin_arg: None,
         env_file: None,
     })
+}
+
+/// Prompt to add another workspace
+fn prompt_add_another() -> Result<bool, Box<dyn Error>> {
+    let add_another = Confirm::new("Add another workspace?")
+        .with_default(false)
+        .with_help_message("Configure additional directories to watch")
+        .prompt()?;
+
+    Ok(add_another)
+}
+
+/// Prompt for workspace directory path
+fn prompt_workspace_directory() -> Result<std::path::PathBuf, Box<dyn Error>> {
+    let dir = Text::new("Workspace directory path:")
+        .with_default(".")
+        .with_help_message("Path to the directory for this workspace (relative or absolute)")
+        .prompt()?;
+
+    Ok(std::path::PathBuf::from(dir))
 }
