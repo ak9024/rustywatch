@@ -28,7 +28,8 @@ pub async fn watcher(
     let ignore = merge_with_defaults(ignore);
 
     // Create reload controller for non-blocking reloads
-    let controller = ReloadController::new(cmd, bin_path, bin_arg, env_vars);
+    // Pass dir so commands execute in the workspace directory
+    let controller = ReloadController::new(cmd, bin_path, bin_arg, env_vars, dir.clone());
 
     // Initial reload (blocking for startup)
     controller.initial_reload().await;

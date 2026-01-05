@@ -50,7 +50,7 @@ pub fn detect_project_name(dir: &Path) -> Option<String> {
             if line.starts_with("module") {
                 if let Some(module_path) = line.split_whitespace().nth(1) {
                     // Get the last part of the module path
-                    if let Some(name) = module_path.split('/').last() {
+                    if let Some(name) = module_path.split('/').next_back() {
                         return Some(name.to_string());
                     }
                 }
