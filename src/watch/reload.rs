@@ -69,13 +69,24 @@ pub async fn reload(
 
     match bin_path {
         Some(bin_path) => {
-            // Convert bin_path to absolute path so it works regardless of current_dir
+            // Convert bin_path to truly absolute path
             let absolute_bin_path = if Path::new(bin_path).is_absolute() {
                 bin_path.to_string()
             } else {
+                // Join CWD + work_dir + bin_path for consistent path resolution
                 env::current_dir()
-                    .map(|cwd| cwd.join(bin_path).to_string_lossy().to_string())
-                    .unwrap_or_else(|_| bin_path.to_string())
+                    .map(|cwd| {
+                        cwd.join(work_dir)
+                            .join(bin_path)
+                            .to_string_lossy()
+                            .to_string()
+                    })
+                    .unwrap_or_else(|_| {
+                        Path::new(work_dir)
+                            .join(bin_path)
+                            .to_string_lossy()
+                            .to_string()
+                    })
             };
 
             if remove(&absolute_bin_path) {
@@ -88,12 +99,18 @@ pub async fn reload(
                     return;
                 }
 
+                // Skip restart if binary doesn't exist after build
+                if !exists(&absolute_bin_path) {
+                    *running_binary = None;
+                    return;
+                }
+
                 // Restart the binary using absolute path
                 match restart(&absolute_bin_path, bin_arg, env_vars, work_dir) {
                     Ok(child) => *running_binary = Some(child),
                     Err(e) => {
                         error!("Failed to restart binary: {:?}", e.to_string());
-                        error!("Please check your <bin_path>: {}", bin_path);
+                        error!("Please check your <bin_path>: {}", absolute_bin_path);
                         *running_binary = None
                     }
                 }

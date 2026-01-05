@@ -44,7 +44,23 @@ brew tap ak9024/rustywatch
 brew install rustywatch
 ```
 
-## Usage
+## Quick Start
+
+### Initialize Configuration
+
+Generate a configuration file interactively:
+
+```shell
+rustywatch init
+```
+
+Or use auto-detected defaults:
+
+```shell
+rustywatch init --yes
+```
+
+### Run RustyWatch
 
 To start the project, ensure you have a `rustywatch.yaml` configuration file in the root directory of your project. Then, run the CLI from the root directory to launch RustyWatch.
 
@@ -59,7 +75,7 @@ workspaces:
   # first project binary apps
   - dir: 'golang-project' # define path directory
     cmd: 'go build main.go' # runs in golang-project/
-    bin_path: './golang-project/main' # define path for binary location
+    bin_path: './main' # relative to workspace dir (golang-project/)
     bin_arg: # define arguments
      - server
     ignore:
@@ -68,7 +84,7 @@ workspaces:
   # second project binary apps
   - dir: 'rust-project'
     cmd: 'cargo build' # runs in rust-project/
-    bin_path: './rust-project/target/debug/rust-project'
+    bin_path: './target/debug/rust-project' # relative to workspace dir
     env_file: '/.env' # load environment variables from project root .env
   # third project non binary apps
   - dir: 'nodejs-project'
@@ -102,6 +118,34 @@ ls
 ```shell
 rustywatch
 ```
+
+## Commands
+
+### Init Command
+
+Generate a configuration file interactively:
+
+```shell
+rustywatch init [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <FILE>` | Config file path (default: rustywatch.yaml) |
+| `--yes` | Skip prompts, use auto-detected defaults |
+| `-f, --force` | Overwrite existing config file |
+
+Auto-detects project type: Rust, Go, Node.js, Python, Bun.
+
+### Process Monitor
+
+Launch with the built-in TUI dashboard for real-time monitoring:
+
+```shell
+rustywatch --monitor
+```
+
+Features: CPU/memory tracking, process management, system metrics.
 
 ## Help
 

@@ -29,18 +29,18 @@ workspaces:
     cmd:
       - echo "Building go-project..."
       - go build
-    bin_path: 'examples/go-project/go-project'
+    bin_path: './go-project'  # relative to workspace dir
     env_file: '.env'
   - dir: 'examples/nodejs-project'
     cmd: npm start
-    env_file: '/.env'
+    env_file: '/.env'  # loads from project root
   - dir: 'examples/rust-project'
     cmd:
       - echo "Building rust-project..."
       - cargo build
-    bin_path: 'examples/rust-project/target/debug/rust-project'
+    bin_path: './target/debug/rust-project'  # relative to workspace dir
     ignore:
-      - 'examples/rust-project/target/'
+      - 'target/'
 ```
 
 :::tip
@@ -51,8 +51,8 @@ Commands automatically execute in the workspace `dir` directory. No need for `cd
 
 - `dir`: The project directory to watch. **Commands automatically execute in this directory.**
 - `cmd`: The commands to run for each project. Can be a single command or an array of commands.
-- `bin_path`: The path to the binary executable file produced after the build.
-- `ignore` (optional): Files or directories that should be excluded from being monitored by RustyWatch. For example, the Rust project's target directory is ignored to avoid unnecessary rebuilds.
+- `bin_path`: The path to the binary executable file, **relative to the workspace directory**. For example, in a Rust project with `dir: 'my-app'`, use `bin_path: './target/debug/my-app'` instead of `bin_path: 'my-app/target/debug/my-app'`.
+- `ignore` (optional): Files or directories that should be excluded from being monitored by RustyWatch. Paths are relative to the workspace directory.
 - `env_file` (optional): Path to a `.env` file containing environment variables. Use a relative path (e.g., `.env`) to load from the workspace directory, or prefix with `/` (e.g., `/.env`) to load from the project root.
 
 
@@ -62,7 +62,7 @@ Commands automatically execute in the workspace `dir` directory. No need for `cd
 
 - Located in `examples/go-project`
 - Commands: `go build` (runs in `examples/go-project/`)
-- Binary location: `examples/go-project/go-project`
+- Binary location: `./go-project` (relative to workspace dir)
 
 **Node.js Project:**
 
@@ -73,7 +73,7 @@ Commands automatically execute in the workspace `dir` directory. No need for `cd
 
 - Located in `examples/rust-project`
 - Commands: `cargo build` (runs in `examples/rust-project/`)
-- Binary location: `examples/rust-project/target/debug/rust-project`
+- Binary location: `./target/debug/rust-project` (relative to workspace dir)
 - The `target/` directory is ignored to prevent unnecessary rebuilds.
 
 **Usage**
