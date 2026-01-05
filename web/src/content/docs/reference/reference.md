@@ -42,4 +42,5 @@ All field under `workspaces` are using `array`:
 | `bin_path`    | Specifies the path to the binary to execute, invoked after `cmd`.    | `string`             |
 | `bin_arg`     | Allows additional arguments for the binary to be provided.        | `array`              |
 | `ignore`      | Lists directories or files to be ignored.                        | `array`              |
+| `env_file`    | Path to `.env` file for loading environment variables. Relative to workspace dir or absolute from root (prefix with `/`). | `string`             |
 

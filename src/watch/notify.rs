@@ -10,6 +10,7 @@ use crate::{
 use log::{error, info, warn};
 use notify::{event::ModifyKind, recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
 use std::{
+    collections::HashMap,
     process::{self, exit},
     result::Result,
     sync::mpsc::channel,
@@ -22,11 +23,12 @@ pub async fn watcher(
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
+    env_vars: HashMap<String, String>,
 ) -> notify::Result<()> {
     let ignore = merge_with_defaults(ignore);
 
     // Create reload controller for non-blocking reloads
-    let controller = ReloadController::new(cmd, bin_path, bin_arg);
+    let controller = ReloadController::new(cmd, bin_path, bin_arg, env_vars);
 
     // Initial reload (blocking for startup)
     controller.initial_reload().await;
@@ -124,9 +126,12 @@ mod tests {
 
         let cmd = CommandType::Single("echo".to_string());
         let ignore = Some(vec![".git".to_string()]);
+        let env_vars = HashMap::new();
 
         let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+            watcher(dir_path, cmd, ignore, None, None, env_vars)
+                .await
+                .unwrap();
         });
 
         write(temp_dir.path().join("test.txt"), "modified content").unwrap();
@@ -144,9 +149,12 @@ mod tests {
         let cmd = CommandType::Single("echo".to_string());
         // Pass None to use default ignore patterns
         let ignore: Option<Vec<String>> = None;
+        let env_vars = HashMap::new();
 
         let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+            watcher(dir_path, cmd, ignore, None, None, env_vars)
+                .await
+                .unwrap();
         });
 
         watch_task.abort();
@@ -161,9 +169,12 @@ mod tests {
 
         let cmd = CommandType::Multiple(vec!["echo first".to_string(), "echo second".to_string()]);
         let ignore = Some(vec![".git".to_string()]);
+        let env_vars = HashMap::new();
 
         let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+            watcher(dir_path, cmd, ignore, None, None, env_vars)
+                .await
+                .unwrap();
         });
 
         watch_task.abort();
@@ -179,9 +190,12 @@ mod tests {
         let cmd = CommandType::Single("echo build".to_string());
         let ignore = Some(vec![".git".to_string()]);
         let bin_path = Some("/tmp/test_binary".to_string());
+        let env_vars = HashMap::new();
 
         let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, bin_path, None).await.unwrap();
+            watcher(dir_path, cmd, ignore, bin_path, None, env_vars)
+                .await
+                .unwrap();
         });
 
         watch_task.abort();
@@ -198,9 +212,12 @@ mod tests {
         let ignore = Some(vec![".git".to_string()]);
         let bin_path = Some("/tmp/test_binary".to_string());
         let bin_arg = Some(vec!["--port".to_string(), "8080".to_string()]);
+        let env_vars = HashMap::new();
 
         let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, bin_path, bin_arg).await.unwrap();
+            watcher(dir_path, cmd, ignore, bin_path, bin_arg, env_vars)
+                .await
+                .unwrap();
         });
 
         watch_task.abort();
@@ -220,9 +237,12 @@ mod tests {
             "target".to_string(),
             "*.log".to_string(),
         ]);
+        let env_vars = HashMap::new();
 
         let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None).await.unwrap();
+            watcher(dir_path, cmd, ignore, None, None, env_vars)
+                .await
+                .unwrap();
         });
 
         watch_task.abort();

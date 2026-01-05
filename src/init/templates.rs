@@ -138,6 +138,7 @@ impl ProjectTemplate {
             ignore: Some(self.default_ignore.iter().map(|s| s.to_string()).collect()),
             bin_path,
             bin_arg: None,
+            env_file: None,
         }
     }
 }

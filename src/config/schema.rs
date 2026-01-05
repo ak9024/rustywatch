@@ -8,6 +8,7 @@ pub struct Workspace {
     pub ignore: Option<Vec<String>>,
     pub bin_path: Option<String>,
     pub bin_arg: Option<Vec<String>>,
+    pub env_file: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -74,6 +75,7 @@ mod tests {
                 bin_path: Some(".".to_string()),
                 bin_arg: Some(vec![]),
                 ignore: Some(vec![]),
+                env_file: None,
             }],
         };
 
@@ -89,6 +91,7 @@ mod tests {
             ignore: None,
             bin_path: None,
             bin_arg: None,
+            env_file: None,
         };
 
         match workspace.cmd {
@@ -105,6 +108,7 @@ mod tests {
             ignore: None,
             bin_path: None,
             bin_arg: None,
+            env_file: None,
         };
 
         match workspace.cmd {
@@ -125,6 +129,7 @@ mod tests {
             ignore: Some(vec![".git".to_string(), "node_modules".to_string(), "target".to_string()]),
             bin_path: None,
             bin_arg: None,
+            env_file: None,
         };
 
         let ignore = workspace.ignore.unwrap();
@@ -142,6 +147,7 @@ mod tests {
             ignore: None,
             bin_path: Some("./target/debug/myapp".to_string()),
             bin_arg: Some(vec!["--port".to_string(), "8080".to_string()]),
+            env_file: None,
         };
 
         assert_eq!(workspace.bin_path.unwrap(), "./target/debug/myapp");

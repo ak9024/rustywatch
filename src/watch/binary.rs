@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs::{metadata, remove_file},
     io::Error,
     process::{Child, Command},
@@ -15,16 +16,17 @@ pub fn exists(binary_path: &str) -> bool {
     metadata(binary_path).is_ok()
 }
 
-pub fn restart(binary_path: &str, cmd_arg: Option<&Vec<String>>) -> Result<Child, Error> {
+pub fn restart(
+    binary_path: &str,
+    cmd_arg: Option<&Vec<String>>,
+    env_vars: &HashMap<String, String>,
+) -> Result<Child, Error> {
     match cmd_arg {
-        Some(args) => match Command::new(binary_path).args(args).spawn() {
-            Ok(child) => Ok(child),
-            Err(e) => Err(e),
-        },
-        None => match Command::new(binary_path).spawn() {
-            Ok(child) => Ok(child),
-            Err(e) => Err(e),
-        },
+        Some(args) => Command::new(binary_path)
+            .args(args)
+            .envs(env_vars)
+            .spawn(),
+        None => Command::new(binary_path).envs(env_vars).spawn(),
     }
 }
 
@@ -70,7 +72,8 @@ mod tests {
         )
         .unwrap();
 
-        let result = restart(file_path.to_str().unwrap(), None);
+        let env_vars = HashMap::new();
+        let result = restart(file_path.to_str().unwrap(), None, &env_vars);
         assert!(result.is_ok());
 
         let child = result.unwrap();

@@ -32,10 +32,12 @@ workspaces:
         cd examples/go-project;
         go build;
     bin_path: 'examples/go-project/go-project'
+    env_file: '.env'
   - dir: 'examples/nodejs-project'
     cmd:
       - echo "nodejs-project"
       - cd examples/nodejs-project;npm start;
+    env_file: '/.env'
   - dir: 'examples/rust-project'
     cmd:
       - echo "rust-project"
@@ -53,6 +55,7 @@ workspaces:
 - `cmd`: The commands to run for each project. You can chain multiple commands using the `|` syntax to write multi-line commands.
 - `bin_path`: The path to the binary executable file produced after the build.
 - `ignore` (optional): Files or directories that should be excluded from being monitored by RustyWatch. For example, the Rust project's target directory is ignored to avoid unnecessary rebuilds.
+- `env_file` (optional): Path to a `.env` file containing environment variables. Use a relative path (e.g., `.env`) to load from the workspace directory, or prefix with `/` (e.g., `/.env`) to load from the project root.
 
 
 **Example Projects**

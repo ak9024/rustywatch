@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io::Error;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
@@ -5,11 +6,13 @@ use tokio::process::{Child, Command};
 
 /// Execute a command asynchronously using tokio::process
 /// Takes a reference to avoid cloning
-pub async fn exec(cmd: &str) -> Result<Child, Error> {
+/// Accepts optional environment variables to inject
+pub async fn exec(cmd: &str, env_vars: &HashMap<String, String>) -> Result<Child, Error> {
     let child = if cfg!(windows) {
         Command::new("cmd")
             .arg("/C")
             .arg(cmd)
+            .envs(env_vars)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -17,6 +20,7 @@ pub async fn exec(cmd: &str) -> Result<Child, Error> {
         Command::new("sh")
             .arg("-c")
             .arg(cmd)
+            .envs(env_vars)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
@@ -74,7 +78,8 @@ mod tests {
     #[tokio::test]
     #[cfg(not(windows))]
     async fn test_exec_unix() {
-        let result = exec("echo 'Hello, World!'").await;
+        let env_vars = HashMap::new();
+        let result = exec("echo 'Hello, World!'", &env_vars).await;
         assert!(result.is_ok());
 
         let child = result.unwrap();
@@ -90,7 +95,8 @@ mod tests {
     #[tokio::test]
     #[cfg(windows)]
     async fn test_exec_windows() {
-        let result = exec("echo Hello, World!").await;
+        let env_vars = HashMap::new();
+        let result = exec("echo Hello, World!", &env_vars).await;
         assert!(result.is_ok());
 
         let child = result.unwrap();
@@ -106,8 +112,28 @@ mod tests {
     #[tokio::test]
     #[cfg(not(windows))]
     async fn test_buf_reader_async() {
-        let child = exec("echo 'test output'").await.unwrap();
+        let env_vars = HashMap::new();
+        let child = exec("echo 'test output'", &env_vars).await.unwrap();
         let result = buf_reader_async(child).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    #[cfg(not(windows))]
+    async fn test_exec_with_env_vars() {
+        let mut env_vars = HashMap::new();
+        env_vars.insert("TEST_VAR".to_string(), "test_value".to_string());
+
+        let result = exec("echo $TEST_VAR", &env_vars).await;
+        assert!(result.is_ok());
+
+        let child = result.unwrap();
+        let output = child.wait_with_output().await.unwrap();
+
+        assert!(output.status.success());
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            "test_value"
+        );
     }
 }

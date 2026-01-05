@@ -39,6 +39,7 @@ mod tests {
                 ignore: Some(vec!["target/".to_string()]),
                 bin_path: Some("./target/debug/myapp".to_string()),
                 bin_arg: None,
+                env_file: None,
             }],
         };
 
@@ -60,6 +61,7 @@ mod tests {
                 ignore: Some(vec!["node_modules/".to_string()]),
                 bin_path: None,
                 bin_arg: None,
+                env_file: None,
             }],
         };
 

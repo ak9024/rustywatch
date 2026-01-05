@@ -172,5 +172,6 @@ fn prompt_workspace_config(
         ignore,
         bin_path,
         bin_arg: None,
+        env_file: None,
     })
 }
