@@ -77,7 +77,7 @@ impl ReloadController {
                 {
                     let mut binary = running_binary.lock().await;
                     reload(
-                        &mut *binary,
+                        &mut binary,
                         &cmd,
                         bin_path.as_ref(),
                         bin_arg.as_ref(),
@@ -108,7 +108,7 @@ impl ReloadController {
     pub async fn initial_reload(&self) {
         let mut binary = self.running_binary.lock().await;
         reload(
-            &mut *binary,
+            &mut binary,
             &self.cmd,
             self.bin_path.as_ref(),
             self.bin_arg.as_ref(),

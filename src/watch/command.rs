@@ -32,11 +32,11 @@ pub async fn buf_reader_async(mut child: Child) -> std::io::Result<()> {
     let stdout = child
         .stdout
         .take()
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "stdout not captured"))?;
+        .ok_or_else(|| std::io::Error::other("stdout not captured"))?;
     let stderr = child
         .stderr
         .take()
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "stderr not captured"))?;
+        .ok_or_else(|| std::io::Error::other("stderr not captured"))?;
 
     let stdout_reader = BufReader::new(stdout);
     let stderr_reader = BufReader::new(stderr);
@@ -60,8 +60,8 @@ pub async fn buf_reader_async(mut child: Child) -> std::io::Result<()> {
     let (stdout_result, stderr_result) = tokio::join!(stdout_task, stderr_task);
 
     // Handle any join errors
-    stdout_result.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-    stderr_result.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    stdout_result.map_err(std::io::Error::other)?;
+    stderr_result.map_err(std::io::Error::other)?;
 
     // Wait for the child process to complete
     child.wait().await?;
