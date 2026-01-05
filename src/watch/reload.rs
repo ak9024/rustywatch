@@ -7,6 +7,8 @@ use command::{buf_reader_async, exec};
 use futures::future::join_all;
 use log::{error, info};
 use std::collections::HashMap;
+use std::env;
+use std::path::Path;
 use std::process::Child;
 
 /// Execute commands based on CommandType
@@ -67,8 +69,17 @@ pub async fn reload(
 
     match bin_path {
         Some(bin_path) => {
-            if remove(bin_path) {
-                if !exists(bin_path) {
+            // Convert bin_path to absolute path so it works regardless of current_dir
+            let absolute_bin_path = if Path::new(bin_path).is_absolute() {
+                bin_path.to_string()
+            } else {
+                env::current_dir()
+                    .map(|cwd| cwd.join(bin_path).to_string_lossy().to_string())
+                    .unwrap_or_else(|_| bin_path.to_string())
+            };
+
+            if remove(&absolute_bin_path) {
+                if !exists(&absolute_bin_path) {
                     execute_commands(cmd, env_vars, work_dir).await;
                 }
 
@@ -77,8 +88,8 @@ pub async fn reload(
                     return;
                 }
 
-                // Restart the binary
-                match restart(bin_path, bin_arg, env_vars, work_dir) {
+                // Restart the binary using absolute path
+                match restart(&absolute_bin_path, bin_arg, env_vars, work_dir) {
                     Ok(child) => *running_binary = Some(child),
                     Err(e) => {
                         error!("Failed to restart binary: {:?}", e.to_string());
