@@ -6,13 +6,14 @@ use binary::{exists, remove, restart};
 use command::{buf_reader_async, exec};
 use futures::future::join_all;
 use log::{error, info};
+use std::collections::HashMap;
 use std::process::Child;
 
 /// Execute commands based on CommandType
-async fn execute_commands(cmd: &CommandType) {
+async fn execute_commands(cmd: &CommandType, env_vars: &HashMap<String, String>) {
     match cmd {
         CommandType::Single(c) => {
-            match exec(c).await {
+            match exec(c, env_vars).await {
                 Ok(child) => {
                     if let Err(e) = buf_reader_async(child).await {
                         error!("Failed to read command output: {}", e);
@@ -25,14 +26,17 @@ async fn execute_commands(cmd: &CommandType) {
             // Execute all commands in parallel
             let tasks: Vec<_> = cmds
                 .iter()
-                .map(|c| async move {
-                    match exec(c).await {
-                        Ok(child) => {
-                            if let Err(e) = buf_reader_async(child).await {
-                                error!("Failed to read command output: {}", e);
+                .map(|c| {
+                    let env_vars = env_vars.clone();
+                    async move {
+                        match exec(c, &env_vars).await {
+                            Ok(child) => {
+                                if let Err(e) = buf_reader_async(child).await {
+                                    error!("Failed to read command output: {}", e);
+                                }
                             }
+                            Err(e) => error!("Failed to run command: {}", e),
                         }
-                        Err(e) => error!("Failed to run command: {}", e),
                     }
                 })
                 .collect();
@@ -47,6 +51,7 @@ pub async fn reload(
     cmd: &CommandType,
     bin_path: Option<&String>,
     bin_arg: Option<&Vec<String>>,
+    env_vars: &HashMap<String, String>,
 ) {
     // Kill old binary if running
     if let Some(ref mut child) = running_binary {
@@ -60,7 +65,7 @@ pub async fn reload(
         Some(bin_path) => {
             if remove(bin_path) {
                 if !exists(bin_path) {
-                    execute_commands(cmd).await;
+                    execute_commands(cmd, env_vars).await;
                 }
 
                 // Prevent restart in test environment
@@ -69,7 +74,7 @@ pub async fn reload(
                 }
 
                 // Restart the binary
-                match restart(bin_path, bin_arg) {
+                match restart(bin_path, bin_arg, env_vars) {
                     Ok(child) => *running_binary = Some(child),
                     Err(e) => {
                         error!("Failed to restart binary: {:?}", e.to_string());
@@ -79,7 +84,7 @@ pub async fn reload(
                 }
             }
         }
-        None => execute_commands(cmd).await,
+        None => execute_commands(cmd, env_vars).await,
     }
 }
 
@@ -94,8 +99,9 @@ mod tests {
         let cmd = CommandType::Single("echo test".to_string());
         let bin_path = None;
         let bin_arg = None;
+        let env_vars = HashMap::new();
 
-        reload(&mut running_binary, &cmd, bin_path, bin_arg).await;
+        reload(&mut running_binary, &cmd, bin_path, bin_arg, &env_vars).await;
         assert!(running_binary.is_none());
     }
 
@@ -105,12 +111,14 @@ mod tests {
         let cmd = CommandType::Single("echo test".to_string());
         let bin_path = Some("test_binary".to_string());
         let bin_arg = Some(vec!["arg1".to_string(), "arg2".to_string()]);
+        let env_vars = HashMap::new();
 
         reload(
             &mut running_binary,
             &cmd,
             bin_path.as_ref(),
             bin_arg.as_ref(),
+            &env_vars,
         )
         .await;
         assert!(running_binary.is_some());
@@ -126,8 +134,9 @@ mod tests {
         ]);
         let bin_path = None;
         let bin_arg = None;
+        let env_vars = HashMap::new();
 
-        reload(&mut running_binary, &cmd, bin_path, bin_arg).await;
+        reload(&mut running_binary, &cmd, bin_path, bin_arg, &env_vars).await;
         assert!(running_binary.is_none());
     }
 }

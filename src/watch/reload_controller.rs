@@ -1,6 +1,7 @@
 use crate::config::schema::CommandType;
 use crate::watch::reload::reload;
 use log::info;
+use std::collections::HashMap;
 use std::process::Child;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -19,6 +20,7 @@ pub struct ReloadController {
     cmd: CommandType,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
+    env_vars: HashMap<String, String>,
 }
 
 impl ReloadController {
@@ -26,6 +28,7 @@ impl ReloadController {
         cmd: CommandType,
         bin_path: Option<String>,
         bin_arg: Option<Vec<String>>,
+        env_vars: HashMap<String, String>,
     ) -> Self {
         Self {
             state: Arc::new(Mutex::new(ReloadState::Idle)),
@@ -33,6 +36,7 @@ impl ReloadController {
             cmd,
             bin_path,
             bin_arg,
+            env_vars,
         }
     }
 
@@ -61,6 +65,7 @@ impl ReloadController {
         let cmd = self.cmd.clone();
         let bin_path = self.bin_path.clone();
         let bin_arg = self.bin_arg.clone();
+        let env_vars = self.env_vars.clone();
 
         tokio::spawn(async move {
             loop {
@@ -72,6 +77,7 @@ impl ReloadController {
                         &cmd,
                         bin_path.as_ref(),
                         bin_arg.as_ref(),
+                        &env_vars,
                     )
                     .await;
                 }
@@ -101,6 +107,7 @@ impl ReloadController {
             &self.cmd,
             self.bin_path.as_ref(),
             self.bin_arg.as_ref(),
+            &self.env_vars,
         )
         .await;
     }
@@ -121,6 +128,7 @@ mod tests {
             CommandType::Single("echo test".to_string()),
             None,
             None,
+            HashMap::new(),
         );
         assert_eq!(controller.get_state().await, ReloadState::Idle);
     }
@@ -131,6 +139,7 @@ mod tests {
             CommandType::Single("echo test".to_string()),
             None,
             None,
+            HashMap::new(),
         );
 
         controller.request_reload().await;

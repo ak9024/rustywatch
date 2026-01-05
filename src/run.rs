@@ -1,11 +1,11 @@
 use crate::{
     args::Args,
-    config::{helper::read, schema::CommandType},
+    config::{env_loader::load_env_file, helper::read, schema::CommandType},
     watch::notify as watch_notify,
 };
 use futures::future::join_all;
 use notify::Error as NotifyError;
-use std::{error::Error, process};
+use std::{collections::HashMap, error::Error, process};
 use watch_notify::watcher;
 
 // @NOTE
@@ -19,6 +19,23 @@ pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
             Ok(_) => {
                 let tasks = config.workspaces.into_iter().map(|workspace| {
                     // @NOTE
+                    // Load environment variables from env_file if specified
+                    // Path resolution:
+                    // - Starts with '/': absolute path from root (remove leading /)
+                    // - Otherwise: relative to workspace dir
+                    let env_vars = match &workspace.env_file {
+                        Some(env_file) => {
+                            let resolved_path = if env_file.starts_with('/') {
+                                env_file.trim_start_matches('/').to_string()
+                            } else {
+                                format!("{}/{}", workspace.dir, env_file)
+                            };
+                            load_env_file(&resolved_path)
+                        }
+                        None => HashMap::new(),
+                    };
+
+                    // @NOTE
                     // all workspace run inside thread as a multi thread.
                     // using move to transfer ownership between thread.
                     // then thread running async
@@ -29,6 +46,7 @@ pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
                             workspace.ignore,
                             workspace.bin_path,
                             workspace.bin_arg,
+                            env_vars,
                         )
                         .await
                     })
@@ -66,8 +84,9 @@ pub async fn cli(args: Args) -> Result<(), NotifyError> {
         Some(command) => CommandType::Multiple(command),
         None => CommandType::Single(String::new()),
     };
+    let env_vars = HashMap::new();
 
-    match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg).await {
+    match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg, env_vars).await {
         Ok(_) => process::exit(0),
         Err(_) => process::exit(1),
     }
@@ -81,8 +100,9 @@ pub async fn run(
     ignore: Option<Vec<String>>,
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
+    env_vars: HashMap<String, String>,
 ) -> Result<(), NotifyError> {
-    match watcher(dir, cmd, ignore, bin_path, bin_arg).await {
+    match watcher(dir, cmd, ignore, bin_path, bin_arg, env_vars).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
     }
@@ -111,12 +131,14 @@ mod tests {
 
     #[test]
     async fn test_run() {
+        let env_vars = HashMap::new();
         let result = run(
             ".".to_string(),
             CommandType::Single("echo 'test'".to_string()),
             None,
             None,
             None,
+            env_vars,
         )
         .await;
 
