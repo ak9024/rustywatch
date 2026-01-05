@@ -2,7 +2,7 @@
 title: Getting Started
 ---
 
-**RustyWatch** Now Supports Multiple Projects! 🤘 
+**RustyWatch** Now Supports Multiple Projects! 🤘
 
 :::note
 
@@ -10,6 +10,7 @@ title: Getting Started
 
 - Run Multiple Projects Simultaneously: No need for complex setups—RustyWatch now handles multiple projects effortlessly.
 - No Dependencies: Forget about monorepos, TurboRepo, or any additional tools. All you need is RustyWatch!
+- Automatic Working Directory: Commands execute in the workspace `dir` automatically—no `cd` prefix needed!
 
 :::
 
@@ -29,9 +30,8 @@ in the root directory of your projects. create file named `rustywatch.yaml`.
 workspaces:
   # define your directory here.
   - dir: go-project
-    # add command to build your project.
-    cmd:
-      - go build
+    # commands run automatically in 'go-project/' directory
+    cmd: go build
     # add your binary location
     bin_path: 'go-project/go-project'
     # optional: if do you have a specific arguments
@@ -51,6 +51,10 @@ workspaces:
     ignore: <ignore>
     env_file: <path_to_env_file>
 ```
+
+:::tip
+Commands automatically execute in the workspace directory. No need for `cd` prefixes!
+:::
 
 **Usage**
 

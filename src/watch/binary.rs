@@ -20,14 +20,13 @@ pub fn restart(
     binary_path: &str,
     cmd_arg: Option<&Vec<String>>,
     env_vars: &HashMap<String, String>,
+    work_dir: &str,
 ) -> Result<Child, Error> {
-    match cmd_arg {
-        Some(args) => Command::new(binary_path)
-            .args(args)
-            .envs(env_vars)
-            .spawn(),
-        None => Command::new(binary_path).envs(env_vars).spawn(),
+    let mut cmd = Command::new(binary_path);
+    if let Some(args) = cmd_arg {
+        cmd.args(args);
     }
+    cmd.current_dir(work_dir).envs(env_vars).spawn()
 }
 
 #[cfg(test)]
@@ -73,7 +72,7 @@ mod tests {
         .unwrap();
 
         let env_vars = HashMap::new();
-        let result = restart(file_path.to_str().unwrap(), None, &env_vars);
+        let result = restart(file_path.to_str().unwrap(), None, &env_vars, ".");
         assert!(result.is_ok());
 
         let child = result.unwrap();

@@ -18,6 +18,7 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 - **Universal Live Reloading:** Supports live reloading for any programming language (Go, Rust, Node.js, Python, and more).
 - **Real-time Binary Reloading:** Automatically rebuilds and restarts your binaries on file changes.
 - **Monorepo & Multi-Project Support:** Run multiple projects concurrently with a single command.
+- **Automatic Working Directory:** Commands execute in the workspace `dir` automatically - no `cd` prefix needed.
 - **Process Monitoring Dashboard:** Built-in terminal UI (`--monitor`) with real-time CPU/memory tracking, process management, and system metrics.
 - **Smart File Filtering:** Intelligent ignore patterns with glob matching for common build artifacts (.git, node_modules, target/, etc.).
 - **Async & High Performance:** Non-blocking async I/O with Tokio, event debouncing, and efficient data structures.
@@ -53,13 +54,11 @@ The default configuration file is named `rustywatch.yaml`, and it must be locate
 
 ```yaml
 # define workspaces, rustywatch can be handled multi project at the same time.
+# commands automatically run in the workspace directory - no cd needed!
 workspaces:
   # first project binary apps
   - dir: 'golang-project' # define path directory
-    cmd: # define command to build binary
-    - |
-      cd ./golang-project;
-      go build main.go
+    cmd: 'go build main.go' # runs in golang-project/
     bin_path: './golang-project/main' # define path for binary location
     bin_arg: # define arguments
      - server
@@ -68,15 +67,12 @@ workspaces:
     env_file: '.env' # load environment variables from golang-project/.env
   # second project binary apps
   - dir: 'rust-project'
-    cmd:
-    - |
-      cd ./rust-project;
-      cargo build
+    cmd: 'cargo build' # runs in rust-project/
     bin_path: './rust-project/target/debug/rust-project'
     env_file: '/.env' # load environment variables from project root .env
   # third project non binary apps
   - dir: 'nodejs-project'
-    cmd: 'cd nodejs-project;npm run dev'
+    cmd: 'npm run dev' # runs in nodejs-project/
   # more ...
 ```
 

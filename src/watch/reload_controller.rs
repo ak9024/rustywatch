@@ -21,6 +21,7 @@ pub struct ReloadController {
     bin_path: Option<String>,
     bin_arg: Option<Vec<String>>,
     env_vars: HashMap<String, String>,
+    dir: String,
 }
 
 impl ReloadController {
@@ -29,6 +30,7 @@ impl ReloadController {
         bin_path: Option<String>,
         bin_arg: Option<Vec<String>>,
         env_vars: HashMap<String, String>,
+        dir: String,
     ) -> Self {
         Self {
             state: Arc::new(Mutex::new(ReloadState::Idle)),
@@ -37,6 +39,7 @@ impl ReloadController {
             bin_path,
             bin_arg,
             env_vars,
+            dir,
         }
     }
 
@@ -66,6 +69,7 @@ impl ReloadController {
         let bin_path = self.bin_path.clone();
         let bin_arg = self.bin_arg.clone();
         let env_vars = self.env_vars.clone();
+        let dir = self.dir.clone();
 
         tokio::spawn(async move {
             loop {
@@ -78,6 +82,7 @@ impl ReloadController {
                         bin_path.as_ref(),
                         bin_arg.as_ref(),
                         &env_vars,
+                        &dir,
                     )
                     .await;
                 }
@@ -108,6 +113,7 @@ impl ReloadController {
             self.bin_path.as_ref(),
             self.bin_arg.as_ref(),
             &self.env_vars,
+            &self.dir,
         )
         .await;
     }
@@ -129,6 +135,7 @@ mod tests {
             None,
             None,
             HashMap::new(),
+            ".".to_string(),
         );
         assert_eq!(controller.get_state().await, ReloadState::Idle);
     }
@@ -140,6 +147,7 @@ mod tests {
             None,
             None,
             HashMap::new(),
+            ".".to_string(),
         );
 
         controller.request_reload().await;

@@ -37,8 +37,8 @@ All field under `workspaces` are using `array`:
 
 | **Field**     | **Description**                                                  | **Type**             |
 |---------------|------------------------------------------------------------------|----------------------|
-| `dir`         | Specifies the configuration directory to be monitored by RustyWatch. | `string`             |
-| `cmd`         | Defines the command(s) to be executed. Can be a string or an array. | `string` \| `array`  |
+| `dir`         | The workspace directory to watch. **Commands execute automatically in this directory.** | `string`             |
+| `cmd`         | Defines the command(s) to be executed. Can be a string or an array. No `cd` prefix needed. | `string` \| `array`  |
 | `bin_path`    | Specifies the path to the binary to execute, invoked after `cmd`.    | `string`             |
 | `bin_arg`     | Allows additional arguments for the binary to be provided.        | `array`              |
 | `ignore`      | Lists directories or files to be ignored.                        | `array`              |
