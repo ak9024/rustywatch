@@ -5,7 +5,7 @@ workspaces:
   cmd:
     - echo "go-fiber"
     - go build
-  bin_path: 'examples/go-fiber/go-fiber'
+  bin_path: 'go-fiber'
 - dir: 'examples/nodejs'
   cmd:
     - echo "nodejs"
@@ -14,7 +14,7 @@ workspaces:
   cmd:
     - echo "rust-actix"
     - cargo build
-  bin_path: 'examples/rust-actix/target/debug/rust-actix'
+  bin_path: 'target/debug/rust-actix'
   ignore:
     - 'examples/rust-actix/target/'
 - dir: 'examples/bun'

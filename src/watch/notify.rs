@@ -72,7 +72,7 @@ pub async fn watcher(
     // Listen to the directory with recursive mode
     match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
         Ok(_) => {
-            info!("Waching directory: {:?}", dir);
+            info!("Watching directory: {:?}", dir);
 
             // In testing env, skip the loop to prevent blocking
             if cfg!(test) {
