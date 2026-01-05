@@ -1,8 +1,10 @@
 ---
-title: Cargo
+title: Cargo & Homebrew
 sidebar:
   order: 1
 ---
+
+## Using Cargo
 
 :::note
 
@@ -10,15 +12,32 @@ sidebar:
 
 :::
 
-**Install**
+**Install from crates.io**
 
 ```shell
 cargo install rustywatch
 ```
+
 **Install directly from git**
 
 ```shell
 cargo install --git https://github.com/ak9024/rustywatch
+```
+
+## Using Homebrew
+
+:::note
+
+Available for macOS and Linux.
+
+:::
+
+```shell
+# Add the tap
+brew tap ak9024/rustywatch
+
+# Install rustywatch
+brew install rustywatch
 ```
 
 
