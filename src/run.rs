@@ -8,11 +8,16 @@ use notify::Error as NotifyError;
 use std::{collections::HashMap, error::Error, process};
 use watch_notify::watcher;
 
-// @NOTE
-// config is an option to run rustywatch with that configuration.
-// config can be define with custom name with the cli options like this:
-// rustywatch --config custom_config.yaml
-// but by default the configuration read from `rustywatch.yaml`
+/// Runs RustyWatch from a configuration file.
+///
+/// Reads and validates the config at `args.config` (defaults to
+/// `rustywatch.yaml`, overridable via `--cfg`), then spawns one asynchronous
+/// task per workspace. Any workspace that fails causes the process to exit with
+/// a non-zero status.
+///
+/// # Errors
+///
+/// Returns an error if the configuration cannot be read or fails validation.
 pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
     match read(args.config) {
         Ok(config) => match config.validate() {
@@ -75,9 +80,15 @@ pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
     }
 }
 
-// @NOTE
-// cli is an options to run rustywatch without configuration.
-// cli take arguments from cli options.
+/// Runs RustyWatch directly from CLI arguments, without a configuration file.
+///
+/// The result is returned to the caller (`main`) rather than terminating the
+/// process here. This keeps the function testable and avoids killing the test
+/// harness when it is exercised from unit tests.
+///
+/// # Errors
+///
+/// Returns any error produced while setting up or running the file watcher.
 pub async fn cli(args: Args) -> Result<(), NotifyError> {
     let dir = args.dir.unwrap_or_else(|| ".".to_string());
     let cmd = match args.command {
@@ -86,14 +97,11 @@ pub async fn cli(args: Args) -> Result<(), NotifyError> {
     };
     let env_vars = HashMap::new();
 
-    match run(dir, cmd, args.ignore, args.bin_path, args.bin_arg, env_vars).await {
-        Ok(_) => process::exit(0),
-        Err(_) => process::exit(1),
-    }
+    run(dir, cmd, args.ignore, args.bin_path, args.bin_arg, env_vars).await
 }
 
-// @NOTE
-// run as a wrapper for watcher.
+/// Thin wrapper around the file watcher that starts watching `dir` and reloads
+/// using the given command, ignore patterns, binary and environment variables.
 pub async fn run(
     dir: String,
     cmd: CommandType,
@@ -113,8 +121,11 @@ mod tests {
     use super::*;
     use tokio::test;
 
+    // `cli` must return `Ok(())` (rather than terminating the process) when the
+    // watcher exits under `cfg!(test)`, otherwise this assertion would be dead
+    // code and the test binary would be killed mid-run.
     #[test]
-    async fn config() {
+    async fn test_cli_returns_ok() {
         let args = Args {
             config: "".to_string(),
             dir: Some(".".to_string()),

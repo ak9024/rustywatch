@@ -106,16 +106,13 @@ mod tests {
 
         match args.bin_path {
             Some(cmd_bin) => assert_eq!(cmd_bin, ""),
-            None => assert_eq!(args.bin_path.is_none(), true),
+            None => assert!(args.bin_path.is_none()),
         };
 
-        match args.bin_arg {
-            Some(arg) => {
-                for a in arg {
-                    assert_eq!(a.as_str(), "server")
-                }
+        if let Some(arg) = args.bin_arg {
+            for a in arg {
+                assert_eq!(a.as_str(), "server")
             }
-            None => {}
         }
 
         assert_eq!(args.config, String::from("rustywatch.yaml"))

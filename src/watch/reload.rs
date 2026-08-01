@@ -15,16 +15,14 @@ use std::process::Child;
 /// Commands are executed in the specified working directory
 async fn execute_commands(cmd: &CommandType, env_vars: &HashMap<String, String>, work_dir: &str) {
     match cmd {
-        CommandType::Single(c) => {
-            match exec(c, env_vars, work_dir).await {
-                Ok(child) => {
-                    if let Err(e) = buf_reader_async(child).await {
-                        error!("Failed to read command output: {}", e);
-                    }
+        CommandType::Single(c) => match exec(c, env_vars, work_dir).await {
+            Ok(child) => {
+                if let Err(e) = buf_reader_async(child).await {
+                    error!("Failed to read command output: {}", e);
                 }
-                Err(e) => error!("Failed to run command: {}", e),
             }
-        }
+            Err(e) => error!("Failed to run command: {}", e),
+        },
         CommandType::Multiple(cmds) => {
             // Execute all commands in parallel
             let work_dir = work_dir.to_string();

@@ -175,8 +175,7 @@ fn draw_header(f: &mut Frame, _app: &App, theme: &Theme, area: Rect) {
 
 fn draw_header_with_stats(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
     let cpu = app.system.global_cpu_info().cpu_usage();
-    let mem_percent =
-        (app.system.used_memory() as f64 / app.system.total_memory() as f64) * 100.0;
+    let mem_percent = (app.system.used_memory() as f64 / app.system.total_memory() as f64) * 100.0;
 
     let header = Paragraph::new(Line::from(vec![
         Span::styled("RustyWatch", theme.title_style()),
@@ -467,7 +466,10 @@ fn draw_footer(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
         .border_type(BorderType::Rounded);
 
     let help_text = Line::from(vec![
-        Span::styled(format!(" [{}] ", mode_str), Style::default().fg(theme.accent)),
+        Span::styled(
+            format!(" [{}] ", mode_str),
+            Style::default().fg(theme.accent),
+        ),
         Span::styled(&app.config_path, Style::default().fg(theme.muted)),
         Span::styled(" | ", Style::default().fg(theme.border)),
         Span::styled("[q]", Style::default().fg(theme.primary)),

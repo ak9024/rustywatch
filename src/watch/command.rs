@@ -8,7 +8,11 @@ use tokio::process::{Child, Command};
 /// Takes a reference to avoid cloning
 /// Accepts optional environment variables to inject
 /// Executes command in the specified working directory
-pub async fn exec(cmd: &str, env_vars: &HashMap<String, String>, work_dir: &str) -> Result<Child, Error> {
+pub async fn exec(
+    cmd: &str,
+    env_vars: &HashMap<String, String>,
+    work_dir: &str,
+) -> Result<Child, Error> {
     let mut command = if cfg!(windows) {
         let mut c = Command::new("cmd");
         c.arg("/C").arg(cmd);
@@ -129,10 +133,7 @@ mod tests {
         let output = child.wait_with_output().await.unwrap();
 
         assert!(output.status.success());
-        assert_eq!(
-            String::from_utf8_lossy(&output.stdout).trim(),
-            "test_value"
-        );
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "test_value");
     }
 
     #[tokio::test]
@@ -152,9 +153,6 @@ mod tests {
         let output = child.wait_with_output().await.unwrap();
 
         assert!(output.status.success());
-        assert_eq!(
-            String::from_utf8_lossy(&output.stdout).trim(),
-            dir_str
-        );
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), dir_str);
     }
 }

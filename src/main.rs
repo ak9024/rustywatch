@@ -35,13 +35,15 @@ async fn main() {
             }
 
             // Otherwise run the file watcher
-            match Path::new(&args.config).exists() {
-                true => run::config(args)
-                    .await
-                    .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
-                false => run::cli(args)
-                    .await
-                    .unwrap_or_else(|e| warn!("Error to execute: {}", e.to_string())),
+            let result: Result<(), Box<dyn std::error::Error>> =
+                match Path::new(&args.config).exists() {
+                    true => run::config(args).await,
+                    false => run::cli(args).await.map_err(Into::into),
+                };
+
+            if let Err(e) = result {
+                warn!("Error to execute: {}", e);
+                std::process::exit(1);
             }
         }
     }

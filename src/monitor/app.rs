@@ -4,8 +4,13 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{prelude::*, widgets::TableState, Terminal};
+use std::{
+    collections::VecDeque,
+    error::Error,
+    io,
+    time::{Duration, Instant},
+};
 use sysinfo::{Pid, Signal, System};
-use std::{collections::VecDeque, error::Error, io, time::{Duration, Instant}};
 
 use crate::monitor::service::ServiceTracker;
 use crate::monitor::ui;
@@ -135,7 +140,8 @@ impl App {
         }
         self.cpu_history.push_back(cpu_usage);
 
-        let mem_percent = (self.system.used_memory() as f64 / self.system.total_memory() as f64) * 100.0;
+        let mem_percent =
+            (self.system.used_memory() as f64 / self.system.total_memory() as f64) * 100.0;
         if self.memory_history.len() >= self.history_max_len {
             self.memory_history.pop_front();
         }
@@ -144,7 +150,9 @@ impl App {
 
     /// Update cached process list from system
     pub fn update_process_list(&mut self) {
-        self.process_list = self.system.processes()
+        self.process_list = self
+            .system
+            .processes()
             .iter()
             .filter(|(pid, _)| self.service_tracker.is_service_process(&pid.as_u32()))
             .map(|(pid, proc)| ProcessInfo {
@@ -183,7 +191,10 @@ impl App {
             let cmp = match self.sort_column {
                 SortColumn::Pid => a.pid.cmp(&b.pid),
                 SortColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-                SortColumn::Cpu => a.cpu_usage.partial_cmp(&b.cpu_usage).unwrap_or(std::cmp::Ordering::Equal),
+                SortColumn::Cpu => a
+                    .cpu_usage
+                    .partial_cmp(&b.cpu_usage)
+                    .unwrap_or(std::cmp::Ordering::Equal),
                 SortColumn::Memory => a.memory_mb.cmp(&b.memory_mb),
                 SortColumn::Status => a.status.cmp(&b.status),
             };
@@ -338,7 +349,10 @@ impl App {
 
     /// Get currently selected PID
     pub fn selected_pid(&self) -> Option<u32> {
-        self.table_state.selected().and_then(|i| self.process_list.get(i)).map(|p| p.pid)
+        self.table_state
+            .selected()
+            .and_then(|i| self.process_list.get(i))
+            .map(|p| p.pid)
     }
 
     /// Request to kill selected process

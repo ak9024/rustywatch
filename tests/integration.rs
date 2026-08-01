@@ -133,7 +133,12 @@ fn test_invalid_config_file() {
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     // Either it failed with an error or it shows error output
-    assert!(!output.status.success() || stderr.contains("error") || stdout.contains("error") || stderr.contains("Error"));
+    assert!(
+        !output.status.success()
+            || stderr.contains("error")
+            || stdout.contains("error")
+            || stderr.contains("Error")
+    );
 }
 
 #[test]

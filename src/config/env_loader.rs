@@ -111,7 +111,7 @@ mod tests {
     fn test_load_env_file() {
         let mut temp_file = NamedTempFile::new().unwrap();
         writeln!(temp_file, "# This is a comment").unwrap();
-        writeln!(temp_file, "").unwrap();
+        writeln!(temp_file).unwrap();
         writeln!(temp_file, "KEY1=value1").unwrap();
         writeln!(temp_file, "KEY2=\"value2\"").unwrap();
         writeln!(temp_file, "KEY3=value with spaces").unwrap();
@@ -120,10 +120,7 @@ mod tests {
 
         assert_eq!(env_vars.get("KEY1"), Some(&"value1".to_string()));
         assert_eq!(env_vars.get("KEY2"), Some(&"value2".to_string()));
-        assert_eq!(
-            env_vars.get("KEY3"),
-            Some(&"value with spaces".to_string())
-        );
+        assert_eq!(env_vars.get("KEY3"), Some(&"value with spaces".to_string()));
         assert_eq!(env_vars.len(), 3);
     }
 
