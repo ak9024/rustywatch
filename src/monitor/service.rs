@@ -1,4 +1,4 @@
-use crate::config::{helper::read, schema::CommandType};
+use crate::config::schema::Config;
 use std::collections::HashSet;
 use std::error::Error;
 use std::path::Path;
@@ -34,7 +34,7 @@ impl ServiceTracker {
             return Ok(());
         }
 
-        let config = read(config_path.to_string())?;
+        let config = Config::from_file(config_path)?;
 
         // Clear any existing commands and paths
         self.service_commands.clear();
@@ -42,16 +42,9 @@ impl ServiceTracker {
 
         for workspace in config.workspaces {
             // Store command parts
-            match &workspace.cmd {
-                CommandType::Single(cmd) => {
-                    self.add_command(cmd);
-                }
-                CommandType::Multiple(cmds) => {
-                    for cmd in cmds {
-                        self.add_command(cmd);
-                    }
-                }
-            };
+            for cmd in workspace.cmd.iter() {
+                self.add_command(cmd);
+            }
 
             // If binary path is specified, add it
             if let Some(bin_path) = &workspace.bin_path {

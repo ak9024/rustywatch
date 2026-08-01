@@ -1,83 +1,28 @@
+//! Entry points that wire CLI arguments and config files to the [`Watcher`].
+//!
+//! These are what `main` calls; library users should build a [`Watcher`]
+//! directly instead.
+
 use crate::{
     args::Args,
-    config::{env_loader::load_env_file, helper::read, schema::CommandType},
-    watch::notify as watch_notify,
+    config::schema::Workspace,
+    error::{Error, Result},
+    watcher::Watcher,
 };
-use futures::future::join_all;
-use notify::Error as NotifyError;
-use std::{collections::HashMap, error::Error, process};
-use watch_notify::watcher;
 
 /// Runs RustyWatch from a configuration file.
 ///
 /// Reads and validates the config at `args.config` (defaults to
-/// `rustywatch.yaml`, overridable via `--cfg`), then spawns one asynchronous
-/// task per workspace. Any workspace that fails causes the process to exit with
-/// a non-zero status.
+/// `rustywatch.yaml`, overridable via `--cfg`), then watches every workspace it
+/// declares concurrently.
 ///
 /// # Errors
 ///
-/// Returns an error if the configuration cannot be read or fails validation.
-pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
-    match read(args.config) {
-        Ok(config) => match config.validate() {
-            Ok(_) => {
-                let tasks = config.workspaces.into_iter().map(|workspace| {
-                    // @NOTE
-                    // Load environment variables from env_file if specified
-                    // Path resolution:
-                    // - Starts with '/': absolute path from root (remove leading /)
-                    // - Otherwise: relative to workspace dir
-                    let env_vars = match &workspace.env_file {
-                        Some(env_file) => {
-                            let resolved_path = if env_file.starts_with('/') {
-                                env_file.trim_start_matches('/').to_string()
-                            } else {
-                                format!("{}/{}", workspace.dir, env_file)
-                            };
-                            load_env_file(&resolved_path)
-                        }
-                        None => HashMap::new(),
-                    };
-
-                    // @NOTE
-                    // all workspace run inside thread as a multi thread.
-                    // using move to transfer ownership between thread.
-                    // then thread running async
-                    tokio::spawn(async move {
-                        run(
-                            workspace.dir,
-                            workspace.cmd,
-                            workspace.ignore,
-                            workspace.bin_path,
-                            workspace.bin_arg,
-                            env_vars,
-                        )
-                        .await
-                    })
-                });
-
-                let results = join_all(tasks).await;
-
-                // @NOTE
-                // results can be return after that value have done in thread.
-                // if the result is ok, the process still continue.
-                // any result must be exit.
-                for result in results {
-                    match result {
-                        Ok(Ok(_)) => continue,
-                        _ => {
-                            process::exit(1);
-                        }
-                    }
-                }
-
-                Ok(())
-            }
-            Err(e) => Err(e.into()),
-        },
-        Err(e) => Err(e),
-    }
+/// Returns the config read/parse/validation failure, or the first workspace
+/// failure. Unlike previous versions this never terminates the process — the
+/// caller decides what to do with the error.
+pub async fn config(args: Args) -> Result<()> {
+    Watcher::from_config_file(&args.config)?.run().await
 }
 
 /// Runs RustyWatch directly from CLI arguments, without a configuration file.
@@ -88,32 +33,41 @@ pub async fn config(args: Args) -> Result<(), Box<dyn Error>> {
 ///
 /// # Errors
 ///
-/// Returns any error produced while setting up or running the file watcher.
-pub async fn cli(args: Args) -> Result<(), NotifyError> {
-    let dir = args.dir.unwrap_or_else(|| ".".to_string());
-    let cmd = match args.command {
-        Some(command) => CommandType::Multiple(command),
-        None => CommandType::Single(String::new()),
-    };
-    let env_vars = HashMap::new();
-
-    run(dir, cmd, args.ignore, args.bin_path, args.bin_arg, env_vars).await
+/// Returns [`Error::InvalidConfig`] if the arguments do not describe a runnable
+/// workspace, plus any error produced while setting up or running the watcher.
+pub async fn cli(args: Args) -> Result<()> {
+    watcher_from_args(args)?.run().await
 }
 
-/// Thin wrapper around the file watcher that starts watching `dir` and reloads
-/// using the given command, ignore patterns, binary and environment variables.
-pub async fn run(
-    dir: String,
-    cmd: CommandType,
-    ignore: Option<Vec<String>>,
-    bin_path: Option<String>,
-    bin_arg: Option<Vec<String>>,
-    env_vars: HashMap<String, String>,
-) -> Result<(), NotifyError> {
-    match watcher(dir, cmd, ignore, bin_path, bin_arg, env_vars).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
+/// Translates parsed CLI arguments into a validated [`Watcher`].
+///
+/// # Errors
+///
+/// Returns [`Error::InvalidConfig`] if no command was supplied, and
+/// [`Error::Ignore`] if `--ignore` contains an invalid glob.
+pub fn watcher_from_args(args: Args) -> Result<Watcher> {
+    let dir = args.dir.unwrap_or_else(|| ".".to_string());
+
+    let commands = args.command.unwrap_or_default();
+    if commands.iter().all(|cmd| cmd.trim().is_empty()) {
+        return Err(Error::invalid_config(
+            "no command to run: pass --cmd, or add a rustywatch.yaml (see `rustywatch init`)",
+        ));
     }
+
+    let mut workspace = Workspace::new(dir).cmds(commands);
+
+    if let Some(ignore) = args.ignore {
+        workspace = workspace.ignore(ignore);
+    }
+    if let Some(bin_path) = args.bin_path {
+        workspace = workspace.bin_path(bin_path);
+    }
+    if let Some(bin_arg) = args.bin_arg {
+        workspace = workspace.bin_arg(bin_arg);
+    }
+
+    Watcher::builder().workspace(workspace).build()
 }
 
 #[cfg(test)]
@@ -121,38 +75,84 @@ mod tests {
     use super::*;
     use tokio::test;
 
-    // `cli` must return `Ok(())` (rather than terminating the process) when the
-    // watcher exits under `cfg!(test)`, otherwise this assertion would be dead
-    // code and the test binary would be killed mid-run.
-    #[test]
-    async fn test_cli_returns_ok() {
-        let args = Args {
-            config: "".to_string(),
+    fn args() -> Args {
+        Args {
+            config: "rustywatch.yaml".to_string(),
             dir: Some(".".to_string()),
             command: Some(vec!["echo 'test'".to_string()]),
             ignore: None,
             bin_path: None,
             bin_arg: None,
             monitor: false,
-        };
+        }
+    }
 
-        let result = cli(args).await;
-        assert!(result.is_ok());
+    // `cli` must return `Ok(())` (rather than terminating the process) when the
+    // watcher exits under `cfg!(test)`, otherwise this assertion would be dead
+    // code and the test binary would be killed mid-run.
+    #[test]
+    async fn test_cli_returns_ok() {
+        assert!(cli(args()).await.is_ok());
     }
 
     #[test]
-    async fn test_run() {
-        let env_vars = HashMap::new();
-        let result = run(
-            ".".to_string(),
-            CommandType::Single("echo 'test'".to_string()),
-            None,
-            None,
-            None,
-            env_vars,
-        )
-        .await;
+    async fn test_config_reports_missing_file() {
+        let args = Args {
+            config: "/nonexistent/rustywatch.yaml".to_string(),
+            ..args()
+        };
 
-        assert!(result.is_ok());
+        assert!(matches!(
+            config(args).await.unwrap_err(),
+            Error::ConfigRead { .. }
+        ));
+    }
+
+    #[test]
+    async fn test_cli_requires_a_command() {
+        let args = Args {
+            command: None,
+            ..args()
+        };
+
+        let err = cli(args).await.unwrap_err();
+        assert!(err.to_string().contains("no command to run"));
+    }
+
+    #[test]
+    async fn test_watcher_from_args_maps_every_flag() {
+        let args = Args {
+            ignore: Some(vec!["target/".to_string()]),
+            bin_path: Some("target/debug/app".to_string()),
+            bin_arg: Some(vec!["--port".to_string(), "8080".to_string()]),
+            ..args()
+        };
+
+        let watcher = watcher_from_args(args).unwrap();
+        let workspace = &watcher.workspaces()[0];
+
+        assert_eq!(workspace.dir, ".");
+        assert_eq!(
+            workspace.ignore.as_deref(),
+            Some(["target/".to_string()].as_slice())
+        );
+        assert_eq!(workspace.bin_path.as_deref(), Some("target/debug/app"));
+        assert_eq!(
+            workspace.bin_arg.as_deref(),
+            Some(["--port".to_string(), "8080".to_string()].as_slice())
+        );
+    }
+
+    #[test]
+    async fn test_watcher_from_args_rejects_bad_ignore_glob() {
+        let args = Args {
+            ignore: Some(vec!["src/**/[".to_string()]),
+            ..args()
+        };
+
+        assert!(matches!(
+            watcher_from_args(args).unwrap_err(),
+            Error::Ignore { .. }
+        ));
     }
 }

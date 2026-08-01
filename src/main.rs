@@ -34,12 +34,12 @@ async fn main() {
                 return;
             }
 
-            // Otherwise run the file watcher
-            let result: Result<(), Box<dyn std::error::Error>> =
-                match Path::new(&args.config).exists() {
-                    true => run::config(args).await,
-                    false => run::cli(args).await.map_err(Into::into),
-                };
+            // Otherwise run the file watcher. The config file wins over CLI
+            // flags when it exists.
+            let result = match Path::new(&args.config).exists() {
+                true => run::config(args).await,
+                false => run::cli(args).await,
+            };
 
             if let Err(e) = result {
                 warn!("Error to execute: {}", e);
