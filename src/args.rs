@@ -48,6 +48,14 @@ pub struct InitArgs {
     #[arg(short = 'o', long = "output", default_value = "rustywatch.yaml")]
     pub output: String,
 
+    /// Root directory to scan for projects
+    #[arg(short = 'd', long = "dir", default_value = ".")]
+    pub dir: String,
+
+    /// How deep to scan for nested projects (0 = only the root directory)
+    #[arg(long, default_value_t = 2, value_name = "N")]
+    pub depth: usize,
+
     /// Skip confirmation prompts and use defaults based on detected project type
     #[arg(long)]
     pub yes: bool,
@@ -55,6 +63,24 @@ pub struct InitArgs {
     /// Force overwrite existing configuration file
     #[arg(short = 'f', long)]
     pub force: bool,
+
+    /// Print the configuration instead of writing it
+    #[arg(long)]
+    pub dry_run: bool,
+}
+
+impl Default for InitArgs {
+    /// Mirrors the defaults `clap` applies on the command line.
+    fn default() -> Self {
+        Self {
+            output: "rustywatch.yaml".to_string(),
+            dir: ".".to_string(),
+            depth: 2,
+            yes: false,
+            force: false,
+            dry_run: false,
+        }
+    }
 }
 
 #[derive(Debug, clap::Args)]
@@ -120,14 +146,37 @@ mod tests {
 
     #[test]
     fn test_init_args_defaults() {
-        let init_args = InitArgs {
-            output: String::from("rustywatch.yaml"),
-            yes: false,
-            force: false,
-        };
+        let init_args = InitArgs::default();
 
         assert_eq!(init_args.output, "rustywatch.yaml");
+        assert_eq!(init_args.dir, ".");
+        assert_eq!(init_args.depth, 2);
         assert!(!init_args.yes);
         assert!(!init_args.force);
+        assert!(!init_args.dry_run);
+    }
+
+    #[test]
+    fn test_init_args_parsed_from_cli() {
+        let cli = Cli::parse_from([
+            "rustywatch",
+            "init",
+            "--dir",
+            "apps",
+            "--depth",
+            "3",
+            "--dry-run",
+            "--yes",
+        ]);
+
+        match cli.command {
+            Some(Commands::Init(args)) => {
+                assert_eq!(args.dir, "apps");
+                assert_eq!(args.depth, 3);
+                assert!(args.dry_run);
+                assert!(args.yes);
+            }
+            other => panic!("expected the init subcommand, got {other:?}"),
+        }
     }
 }

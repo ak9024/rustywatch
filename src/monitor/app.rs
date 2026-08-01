@@ -59,6 +59,39 @@ pub struct ProcessInfo {
     pub run_time: u64,
 }
 
+/// Returns `true` when `process` matches `query` by name or PID.
+///
+/// An empty query matches everything. Matching is case-insensitive.
+pub fn matches_search(process: &ProcessInfo, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+
+    let query = query.to_lowercase();
+    process.name.to_lowercase().contains(&query) || process.pid.to_string().contains(&query)
+}
+
+/// Sorts `processes` in place by `column`, honouring `order`.
+pub fn sort_processes(processes: &mut [ProcessInfo], column: SortColumn, order: SortOrder) {
+    processes.sort_by(|a, b| {
+        let cmp = match column {
+            SortColumn::Pid => a.pid.cmp(&b.pid),
+            SortColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+            SortColumn::Cpu => a
+                .cpu_usage
+                .partial_cmp(&b.cpu_usage)
+                .unwrap_or(std::cmp::Ordering::Equal),
+            SortColumn::Memory => a.memory_mb.cmp(&b.memory_mb),
+            SortColumn::Status => a.status.cmp(&b.status),
+        };
+
+        match order {
+            SortOrder::Ascending => cmp,
+            SortOrder::Descending => cmp.reverse(),
+        }
+    });
+}
+
 pub struct App {
     pub system: System,
     pub service_tracker: ServiceTracker,
@@ -140,8 +173,14 @@ impl App {
         }
         self.cpu_history.push_back(cpu_usage);
 
-        let mem_percent =
-            (self.system.used_memory() as f64 / self.system.total_memory() as f64) * 100.0;
+        // A zero total (unreadable on some platforms) would push NaN into the
+        // history and poison the sparkline.
+        let total = self.system.total_memory() as f64;
+        let mem_percent = if total <= 0.0 {
+            0.0
+        } else {
+            (self.system.used_memory() as f64 / total) * 100.0
+        };
         if self.memory_history.len() >= self.history_max_len {
             self.memory_history.pop_front();
         }
@@ -178,31 +217,12 @@ impl App {
 
     /// Check if process matches current search query
     fn matches_search(&self, process: &ProcessInfo) -> bool {
-        if self.search_query.is_empty() {
-            return true;
-        }
-        let query = self.search_query.to_lowercase();
-        process.name.to_lowercase().contains(&query) || process.pid.to_string().contains(&query)
+        matches_search(process, &self.search_query)
     }
 
     /// Sort process list by current column and order
     fn sort_processes(&mut self) {
-        self.process_list.sort_by(|a, b| {
-            let cmp = match self.sort_column {
-                SortColumn::Pid => a.pid.cmp(&b.pid),
-                SortColumn::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-                SortColumn::Cpu => a
-                    .cpu_usage
-                    .partial_cmp(&b.cpu_usage)
-                    .unwrap_or(std::cmp::Ordering::Equal),
-                SortColumn::Memory => a.memory_mb.cmp(&b.memory_mb),
-                SortColumn::Status => a.status.cmp(&b.status),
-            };
-            match self.sort_order {
-                SortOrder::Ascending => cmp,
-                SortOrder::Descending => cmp.reverse(),
-            }
-        });
+        sort_processes(&mut self.process_list, self.sort_column, self.sort_order);
     }
 
     // Navigation methods
@@ -475,6 +495,38 @@ impl App {
     }
 }
 
+#[cfg(test)]
+impl App {
+    /// Builds an `App` around a fixed process list without touching the real
+    /// system, so tests are deterministic and cannot signal live processes.
+    ///
+    /// `system` is left empty: `kill_process` looks the PID up there and finds
+    /// nothing, and `update_process_list` would replace `process_list` — tests
+    /// on the injected list must not call `refresh`.
+    pub(crate) fn with_processes(process_list: Vec<ProcessInfo>) -> Self {
+        let mut table_state = TableState::default();
+        table_state.select(Some(0));
+
+        App {
+            system: System::new(),
+            service_tracker: ServiceTracker::new(),
+            should_quit: false,
+            refresh_interval: Duration::from_secs(1),
+            last_refresh: Instant::now(),
+            config_path: "rustywatch.yaml".to_string(),
+            table_state,
+            process_list,
+            sort_column: SortColumn::Cpu,
+            sort_order: SortOrder::Descending,
+            search_query: String::new(),
+            mode: AppMode::Normal,
+            cpu_history: VecDeque::from(vec![10.0, 20.0, 30.0]),
+            memory_history: VecDeque::from(vec![40.0, 50.0, 60.0]),
+            history_max_len: 60,
+        }
+    }
+}
+
 pub fn run(config_path: String) -> Result<(), Box<dyn Error>> {
     // Set up terminal
     enable_raw_mode()?;
@@ -673,5 +725,328 @@ workspaces:
 
         assert!(!app.should_quit);
         assert!(app.service_tracker.service_commands.is_empty());
+    }
+
+    // --- deterministic tests over an injected process list ---
+
+    fn process(pid: u32, name: &str, cpu: f32, memory_mb: u64, status: &str) -> ProcessInfo {
+        ProcessInfo {
+            pid,
+            name: name.to_string(),
+            cpu_usage: cpu,
+            memory_mb,
+            status: status.to_string(),
+            run_time: 42,
+        }
+    }
+
+    fn sample_processes() -> Vec<ProcessInfo> {
+        vec![
+            process(300, "beta", 5.0, 900, "Run"),
+            process(100, "Alpha", 50.0, 100, "Sleep"),
+            process(200, "gamma", 20.0, 500, "Stop"),
+        ]
+    }
+
+    fn pids(app: &App) -> Vec<u32> {
+        app.process_list.iter().map(|p| p.pid).collect()
+    }
+
+    #[test]
+    fn test_sort_processes_by_every_column() {
+        let mut list = sample_processes();
+
+        sort_processes(&mut list, SortColumn::Pid, SortOrder::Ascending);
+        assert_eq!(
+            list.iter().map(|p| p.pid).collect::<Vec<_>>(),
+            vec![100, 200, 300]
+        );
+
+        sort_processes(&mut list, SortColumn::Pid, SortOrder::Descending);
+        assert_eq!(
+            list.iter().map(|p| p.pid).collect::<Vec<_>>(),
+            vec![300, 200, 100]
+        );
+
+        // Name sorting is case-insensitive: "Alpha" must lead, not trail.
+        sort_processes(&mut list, SortColumn::Name, SortOrder::Ascending);
+        assert_eq!(
+            list.iter().map(|p| p.name.as_str()).collect::<Vec<_>>(),
+            vec!["Alpha", "beta", "gamma"]
+        );
+
+        sort_processes(&mut list, SortColumn::Cpu, SortOrder::Descending);
+        assert_eq!(
+            list.iter().map(|p| p.pid).collect::<Vec<_>>(),
+            vec![100, 200, 300]
+        );
+
+        sort_processes(&mut list, SortColumn::Memory, SortOrder::Ascending);
+        assert_eq!(
+            list.iter().map(|p| p.memory_mb).collect::<Vec<_>>(),
+            vec![100, 500, 900]
+        );
+
+        sort_processes(&mut list, SortColumn::Status, SortOrder::Ascending);
+        assert_eq!(
+            list.iter().map(|p| p.status.as_str()).collect::<Vec<_>>(),
+            vec!["Run", "Sleep", "Stop"]
+        );
+    }
+
+    #[test]
+    fn test_sort_processes_handles_nan_cpu() {
+        let mut list = vec![
+            process(1, "a", f32::NAN, 1, "Run"),
+            process(2, "b", 1.0, 1, "Run"),
+        ];
+
+        // Must not panic: `partial_cmp` returns `None` for NaN.
+        sort_processes(&mut list, SortColumn::Cpu, SortOrder::Descending);
+        assert_eq!(list.len(), 2);
+    }
+
+    #[test]
+    fn test_matches_search() {
+        let p = process(1234, "rustywatch", 1.0, 1, "Run");
+
+        assert!(matches_search(&p, ""));
+        assert!(matches_search(&p, "rusty"));
+        assert!(matches_search(&p, "RUSTY"), "search is case-insensitive");
+        assert!(matches_search(&p, "234"), "matches on PID substring");
+        assert!(!matches_search(&p, "nope"));
+    }
+
+    #[test]
+    fn test_set_sort_column_reorders_and_toggles() {
+        let mut app = App::with_processes(sample_processes());
+
+        app.set_sort_column(SortColumn::Pid);
+        assert_eq!(app.sort_order, SortOrder::Descending);
+        assert_eq!(pids(&app), vec![300, 200, 100]);
+
+        // Same column again flips the order rather than re-selecting it.
+        app.set_sort_column(SortColumn::Pid);
+        assert_eq!(app.sort_order, SortOrder::Ascending);
+        assert_eq!(pids(&app), vec![100, 200, 300]);
+    }
+
+    #[test]
+    fn test_next_sort_column_cycles_back_to_pid() {
+        let mut app = App::with_processes(sample_processes());
+        app.sort_column = SortColumn::Pid;
+
+        for expected in [
+            SortColumn::Name,
+            SortColumn::Cpu,
+            SortColumn::Memory,
+            SortColumn::Status,
+            SortColumn::Pid,
+        ] {
+            app.next_sort_column();
+            assert_eq!(app.sort_column, expected);
+        }
+    }
+
+    #[test]
+    fn test_navigation_wraps_around() {
+        let mut app = App::with_processes(sample_processes());
+
+        assert_eq!(app.table_state.selected(), Some(0));
+        app.next();
+        app.next();
+        assert_eq!(app.table_state.selected(), Some(2));
+
+        // Past the end wraps to the start, and back again from the start.
+        app.next();
+        assert_eq!(app.table_state.selected(), Some(0));
+        app.previous();
+        assert_eq!(app.table_state.selected(), Some(2));
+    }
+
+    #[test]
+    fn test_first_last_and_paging() {
+        let mut app = App::with_processes(sample_processes());
+
+        app.last();
+        assert_eq!(app.table_state.selected(), Some(2));
+        app.first();
+        assert_eq!(app.table_state.selected(), Some(0));
+
+        // Paging clamps instead of running off either end.
+        app.page_down(10);
+        assert_eq!(app.table_state.selected(), Some(2));
+        app.page_up(10);
+        assert_eq!(app.table_state.selected(), Some(0));
+    }
+
+    #[test]
+    fn test_navigation_on_empty_list_is_a_no_op() {
+        let mut app = App::with_processes(Vec::new());
+        app.table_state.select(None);
+
+        app.next();
+        app.previous();
+        app.first();
+        app.last();
+        app.page_down(5);
+        app.page_up(5);
+
+        assert_eq!(app.table_state.selected(), None);
+    }
+
+    #[test]
+    fn test_selected_pid_tracks_selection() {
+        let mut app = App::with_processes(sample_processes());
+        app.set_sort_column(SortColumn::Pid);
+
+        assert_eq!(app.selected_pid(), Some(300));
+        app.next();
+        assert_eq!(app.selected_pid(), Some(200));
+
+        app.table_state.select(None);
+        assert_eq!(app.selected_pid(), None);
+    }
+
+    #[test]
+    fn test_selected_pid_none_when_list_empty() {
+        assert_eq!(App::with_processes(Vec::new()).selected_pid(), None);
+    }
+
+    // The injected `System` is empty, so confirming never reaches a live
+    // process — this exercises the mode transitions only.
+    #[test]
+    fn test_kill_request_confirm_and_cancel() {
+        let mut app = App::with_processes(sample_processes());
+        app.set_sort_column(SortColumn::Pid);
+
+        app.on_key(KeyCode::Char('x'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Confirm(ConfirmAction::KillProcess(300)));
+
+        app.on_key(KeyCode::Char('n'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Normal);
+
+        app.on_key(KeyCode::Delete, KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Confirm(ConfirmAction::KillProcess(300)));
+
+        app.on_key(KeyCode::Char('y'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Normal);
+    }
+
+    #[test]
+    fn test_restart_request_uses_its_own_action() {
+        let mut app = App::with_processes(sample_processes());
+        app.set_sort_column(SortColumn::Pid);
+
+        app.on_key(KeyCode::Char('R'), KeyModifiers::NONE);
+        assert_eq!(
+            app.mode,
+            AppMode::Confirm(ConfirmAction::RestartService(300))
+        );
+
+        app.on_key(KeyCode::Esc, KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Normal);
+    }
+
+    #[test]
+    fn test_kill_request_ignored_without_a_selection() {
+        let mut app = App::with_processes(Vec::new());
+
+        app.on_key(KeyCode::Char('x'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Normal);
+    }
+
+    #[test]
+    fn test_confirm_mode_ignores_unrelated_keys() {
+        let mut app = App::with_processes(sample_processes());
+        app.mode = AppMode::Confirm(ConfirmAction::KillProcess(1));
+
+        app.on_key(KeyCode::Char('z'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Confirm(ConfirmAction::KillProcess(1)));
+    }
+
+    #[test]
+    fn test_help_mode_swallows_navigation() {
+        let mut app = App::with_processes(sample_processes());
+
+        app.on_key(KeyCode::F(1), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Help);
+
+        // While the overlay is up, `j` must not move the selection.
+        app.on_key(KeyCode::Char('j'), KeyModifiers::NONE);
+        assert_eq!(app.table_state.selected(), Some(0));
+
+        app.on_key(KeyCode::Char('?'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Normal);
+    }
+
+    #[test]
+    fn test_help_mode_quit_key_closes_overlay_without_quitting() {
+        let mut app = App::with_processes(sample_processes());
+        app.mode = AppMode::Help;
+
+        app.on_key(KeyCode::Char('q'), KeyModifiers::NONE);
+        assert_eq!(app.mode, AppMode::Normal);
+        assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn test_search_mode_enter_confirms() {
+        let mut app = App::with_processes(Vec::new());
+
+        app.on_key(KeyCode::Char('/'), KeyModifiers::NONE);
+        app.on_key(KeyCode::Char('a'), KeyModifiers::NONE);
+        app.on_key(KeyCode::Enter, KeyModifiers::NONE);
+
+        assert_eq!(app.mode, AppMode::Normal);
+        assert_eq!(app.search_query, "a");
+    }
+
+    #[test]
+    fn test_search_mode_ignores_unhandled_keys() {
+        let mut app = App::with_processes(Vec::new());
+        app.mode = AppMode::Search;
+
+        app.on_key(KeyCode::Tab, KeyModifiers::NONE);
+        assert_eq!(app.search_query, "");
+        assert_eq!(app.mode, AppMode::Search);
+    }
+
+    #[test]
+    fn test_ctrl_d_and_ctrl_u_page() {
+        let mut app = App::with_processes(sample_processes());
+
+        app.on_key(KeyCode::Char('d'), KeyModifiers::CONTROL);
+        assert_eq!(app.table_state.selected(), Some(2));
+
+        app.on_key(KeyCode::Char('u'), KeyModifiers::CONTROL);
+        assert_eq!(app.table_state.selected(), Some(0));
+    }
+
+    #[test]
+    fn test_number_keys_select_sort_columns() {
+        let mut app = App::with_processes(sample_processes());
+
+        for (key, expected) in [
+            ('1', SortColumn::Pid),
+            ('2', SortColumn::Name),
+            ('3', SortColumn::Cpu),
+            ('4', SortColumn::Memory),
+            ('5', SortColumn::Status),
+        ] {
+            app.on_key(KeyCode::Char(key), KeyModifiers::NONE);
+            assert_eq!(app.sort_column, expected);
+        }
+    }
+
+    #[test]
+    fn test_unknown_key_is_ignored() {
+        let mut app = App::with_processes(sample_processes());
+
+        app.on_key(KeyCode::Char('z'), KeyModifiers::NONE);
+
+        assert_eq!(app.mode, AppMode::Normal);
+        assert!(!app.should_quit);
+        assert_eq!(app.table_state.selected(), Some(0));
     }
 }

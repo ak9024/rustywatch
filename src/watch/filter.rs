@@ -1,29 +1,46 @@
+use crate::error::{Error, Result};
 use globset::{Glob, GlobSet, GlobSetBuilder};
 use std::path::Path;
 
-/// Compiled pattern matcher for O(1) path matching
-#[derive(Clone)]
+/// Compiled pattern matcher for O(1) path matching.
+///
+/// This is the matcher the watch pipeline uses: patterns are compiled once when
+/// the [`Watcher`](crate::Watcher) is built, so an invalid glob is reported up
+/// front instead of silently matching nothing at runtime.
+#[derive(Clone, Debug)]
 pub struct CompiledFilter {
     glob_set: GlobSet,
 }
 
 impl CompiledFilter {
-    /// Compile patterns into a GlobSet for fast matching
+    /// Compile patterns into a `GlobSet` for fast matching.
+    ///
     /// Patterns can be:
-    /// - Simple names: "node_modules" matches any path containing it
-    /// - Glob patterns: "*.log", "**/*.tmp"
-    /// - Directory patterns: "target/" matches target directory
-    pub fn new(patterns: &[String]) -> Result<Self, globset::Error> {
+    /// - Simple names: `node_modules` matches the entry and anything inside it
+    /// - Glob patterns: `*.log`, `**/*.tmp`
+    /// - Directory patterns: `target/` matches everything under `target`
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::Ignore`] naming the pattern that failed to compile.
+    pub fn new(patterns: &[String]) -> Result<Self> {
         let mut builder = GlobSetBuilder::new();
 
         for pattern in patterns {
             for glob_pattern in Self::build_patterns(pattern) {
-                let glob = Glob::new(&glob_pattern)?;
+                let glob = Glob::new(&glob_pattern).map_err(|source| Error::Ignore {
+                    pattern: Some(pattern.clone()),
+                    source,
+                })?;
                 builder.add(glob);
             }
         }
 
-        let glob_set = builder.build()?;
+        let glob_set = builder.build().map_err(|source| Error::Ignore {
+            pattern: None,
+            source,
+        })?;
+
         Ok(Self { glob_set })
     }
 
@@ -66,56 +83,9 @@ impl CompiledFilter {
     }
 }
 
-/// Legacy function for backward compatibility
-pub fn is_ignored<P: AsRef<Path>>(path: P, ignored_patterns: &[String]) -> bool {
-    let path = path.as_ref();
-    let path_str = path.to_str().unwrap_or("");
-
-    for pattern in ignored_patterns {
-        if path_str.ends_with(pattern) || (pattern.ends_with('/') && path_str.contains(pattern)) {
-            return true;
-        }
-    }
-
-    false
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_is_ignored() {
-        let ignored_patterns = vec![
-            String::from(".git"),
-            String::from(".DS_Store"),
-            String::from("target/"),
-            String::from("node_modules"),
-        ];
-
-        // Test exact matches
-        assert!(is_ignored("path/to/.git", &ignored_patterns));
-        assert!(is_ignored("some/directory/.DS_Store", &ignored_patterns));
-        assert!(is_ignored("project/target/", &ignored_patterns));
-        assert!(is_ignored("node_modules", &ignored_patterns));
-
-        // Test directory patterns
-        assert!(is_ignored("project/target/debug", &ignored_patterns));
-        assert!(is_ignored("nested/path/target/release", &ignored_patterns));
-
-        // Test non-matches
-        assert!(!is_ignored("normal/file.txt", &ignored_patterns));
-        assert!(!is_ignored("another/directory", &ignored_patterns));
-        assert!(!is_ignored(".gitignore", &ignored_patterns));
-        assert!(!is_ignored("targets", &ignored_patterns));
-
-        // Test empty path
-        assert!(!is_ignored("", &ignored_patterns));
-
-        // Test case sensitivity
-        assert!(!is_ignored("path/to/.GIT", &ignored_patterns));
-        assert!(!is_ignored("some/directory/.ds_store", &ignored_patterns));
-    }
 
     #[test]
     fn test_compiled_filter() {
@@ -160,5 +130,21 @@ mod tests {
         assert!(filter.is_ignored(Path::new("/project/build/output.js")));
         assert!(filter.is_ignored(Path::new("/project/src/__pycache__/module.pyc")));
         assert!(!filter.is_ignored(Path::new("/project/src/builder.rs")));
+    }
+
+    #[test]
+    fn test_compiled_filter_reports_offending_pattern() {
+        let err = CompiledFilter::new(&["src/**/[".to_string()]).unwrap_err();
+
+        match err {
+            Error::Ignore { pattern, .. } => assert_eq!(pattern.as_deref(), Some("src/**/[")),
+            other => panic!("expected Error::Ignore, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_compiled_filter_empty_matches_nothing() {
+        let filter = CompiledFilter::new(&[]).unwrap();
+        assert!(!filter.is_ignored(Path::new("/project/target/debug/binary")));
     }
 }

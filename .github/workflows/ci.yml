@@ -142,7 +142,68 @@ jobs:
           path: target/debug/rustywatch*
 
   test:
-    name: Test
+    name: Test on ${{ matrix.OS }}
+    runs-on: ${{ matrix.OS }}
+    strategy:
+      fail-fast: false
+      matrix:
+        OS: [ubuntu-latest, macos-14]
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      # `--all-targets` covers unit, integration and bench targets but
+      # deliberately skips doc tests, so they get their own step.
+      - name: Run unit and integration tests
+        run: cargo test --locked --all-targets
+
+      - name: Run doc tests
+        run: cargo test --locked --doc
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      # Keep in sync with `rust-version` in Cargo.toml.
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@1.85.0
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check against the declared MSRV
+        run: cargo check --locked --all-targets
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+
+      # Catches broken intra-doc links in the public API documentation.
+      - name: Build the API documentation
+        run: cargo doc --no-deps --locked
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  coverage:
+    name: Coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
@@ -233,8 +294,9 @@ jobs:
       - name: Cache Cargo dependencies
         uses: Swatinem/rust-cache@v2
 
+      # `--all-targets` also lints tests and benches, not just the library.
       - name: Check lints
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
 
   # deny:
   #   name: Deny

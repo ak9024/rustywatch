@@ -1,51 +1,69 @@
 use crate::{
-    config::schema::CommandType,
+    config::schema::Workspace,
+    error::Result,
     watch::{
         debouncer::{Debouncer, DebouncerConfig},
-        filter::is_ignored,
-        ignore_defaults::merge_with_defaults,
+        filter::CompiledFilter,
         reload_controller::ReloadController,
     },
 };
-use log::{error, info, warn};
-use notify::{event::ModifyKind, recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
-use std::{collections::HashMap, process::exit, result::Result, sync::mpsc::channel};
+use log::{info, warn};
+use notify::{
+    event::ModifyKind, recommended_watcher, Event, EventKind, RecursiveMode,
+    Watcher as NotifyWatcher,
+};
+use std::{path::PathBuf, sync::mpsc::channel};
 use tokio::sync::mpsc as tokio_mpsc;
 
-pub async fn watcher(
-    dir: String,
-    cmd: CommandType,
-    ignore: Option<Vec<String>>,
-    bin_path: Option<String>,
-    bin_arg: Option<Vec<String>>,
-    env_vars: HashMap<String, String>,
-) -> notify::Result<()> {
-    let ignore = merge_with_defaults(ignore);
+/// Watches a single workspace until the process is stopped.
+///
+/// The pipeline is:
+///
+/// ```text
+/// notify::recommended_watcher (std::sync::mpsc callback)
+///   -> std::thread bridge: keeps only EventKind::Modify(ModifyKind::Data(_)),
+///      drops paths matching the workspace ignore patterns
+///   -> Debouncer (quiet period + hard max) - dedupes paths into one batch
+///   -> ReloadController::request_reload()
+/// ```
+///
+/// Only *data modification* events trigger reloads — file creation, deletion
+/// and rename do not.
+///
+/// # Errors
+///
+/// Returns [`Error::Ignore`](crate::Error::Ignore) if an ignore pattern is not
+/// a valid glob, and [`Error::Watch`](crate::Error::Watch) if the platform
+/// watcher cannot be created or cannot observe `workspace.dir`.
+pub async fn watch(workspace: Workspace, debounce: DebouncerConfig) -> Result<()> {
+    let filter = CompiledFilter::new(&workspace.ignore_patterns())?;
+    let env_vars = workspace.env_vars();
+    let dir = workspace.dir.clone();
 
-    // Create reload controller for non-blocking reloads
-    // Pass dir so commands execute in the workspace directory
-    let controller = ReloadController::new(cmd, bin_path, bin_arg, env_vars, dir.clone());
+    // Create reload controller for non-blocking reloads.
+    // The workspace `dir` doubles as the working directory for every command.
+    let controller = ReloadController::new(workspace, env_vars);
 
     // Initial reload (blocking for startup)
     controller.initial_reload().await;
 
     // Create debouncer for batching file changes
-    let debouncer_config = DebouncerConfig::default();
-    let (debouncer, mut debounce_rx) = Debouncer::new(debouncer_config);
+    let (debouncer, mut debounce_rx) = Debouncer::new(debounce);
 
     // Create tokio channel for forwarding events from the watcher thread
-    let (event_tx, mut event_rx) = tokio_mpsc::channel::<Vec<std::path::PathBuf>>(100);
+    let (event_tx, mut event_rx) = tokio_mpsc::channel::<Vec<PathBuf>>(100);
 
     // Define a channel to receive file system events (std::sync for notify callback)
     let (tx, rx) = channel();
 
-    let mut watcher = recommended_watcher(move |res: Result<Event, notify::Error>| {
-        tx.send(res).unwrap();
-    })
-    .unwrap();
+    let mut watcher =
+        recommended_watcher(move |res: std::result::Result<Event, notify::Error>| {
+            // The receiver is dropped once this function returns; ignore the error
+            // rather than panicking inside the platform watcher callback.
+            let _ = tx.send(res);
+        })?;
 
     // Spawn a blocking task to forward events from std::sync channel to tokio channel
-    let ignore_clone = ignore.clone();
     std::thread::spawn(move || {
         while let Ok(Ok(event)) = rx.recv() {
             if let EventKind::Modify(modify_kind) = event.kind {
@@ -53,7 +71,7 @@ pub async fn watcher(
                     let filtered_paths: Vec<_> = event
                         .paths
                         .into_iter()
-                        .filter(|path| !is_ignored(path, &ignore_clone))
+                        .filter(|path| !filter.is_ignored(path))
                         .collect();
 
                     if !filtered_paths.is_empty() {
@@ -65,185 +83,126 @@ pub async fn watcher(
     });
 
     // Listen to the directory with recursive mode
-    match watcher.watch(dir.as_ref(), RecursiveMode::Recursive) {
-        Ok(_) => {
-            info!("Watching directory: {:?}", dir);
+    watcher.watch(dir.as_ref(), RecursiveMode::Recursive)?;
+    info!("Watching directory: {:?}", dir);
 
-            // In testing env, skip the blocking event loop and return
-            // cleanly. Using `process::exit` here would terminate the entire
-            // test binary mid-run, silently skipping any tests that had not
-            // yet completed on other threads.
-            if cfg!(test) {
-                warn!("Running in test environment");
-                return Ok(());
+    // In testing env, skip the blocking event loop and return cleanly. Using
+    // `process::exit` here would terminate the entire test binary mid-run,
+    // silently skipping any tests that had not yet completed on other threads.
+    if cfg!(test) {
+        warn!("Running in test environment");
+        return Ok(());
+    }
+
+    // Main event loop using tokio::select! for concurrent handling
+    loop {
+        tokio::select! {
+            // Handle debounced file change batches
+            Some(batch) = debounce_rx.recv() => {
+                if !batch.is_empty() {
+                    if let Some(file) = batch.first() {
+                        info!("Files changed ({}): {:?}", batch.len(), file);
+                    }
+                    // Non-blocking reload request
+                    controller.request_reload().await;
+                }
             }
-
-            // Main event loop using tokio::select! for concurrent handling
-            loop {
-                tokio::select! {
-                    // Handle debounced file change batches
-                    Some(batch) = debounce_rx.recv() => {
-                        if !batch.is_empty() {
-                            if let Some(file) = batch.first() {
-                                info!("Files changed ({}): {:?}", batch.len(), file);
-                            }
-                            // Non-blocking reload request
-                            controller.request_reload().await;
-                        }
-                    }
-                    // Handle forwarded file system events
-                    Some(paths) = event_rx.recv() => {
-                        for path in paths {
-                            debouncer.add_path(path).await;
-                        }
-                    }
+            // Handle forwarded file system events
+            Some(paths) = event_rx.recv() => {
+                for path in paths {
+                    debouncer.add_path(path).await;
                 }
             }
         }
-        Err(e) => {
-            error!("Error to watching directory: {:?}", e.paths);
-            exit(1)
-        }
     }
-
-    #[allow(unreachable_code)]
-    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::error::Error;
     use std::fs::write;
     use tempfile::tempdir;
 
-    #[tokio::test]
-    async fn test_watch() {
+    fn temp_workspace() -> (tempfile::TempDir, String) {
         let temp_dir = tempdir().unwrap();
         let dir_path = temp_dir.path().to_str().unwrap().to_string();
-
         write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+        (temp_dir, dir_path)
+    }
 
-        let cmd = CommandType::Single("echo".to_string());
-        let ignore = Some(vec![".git".to_string()]);
-        let env_vars = HashMap::new();
+    #[tokio::test]
+    async fn test_watch() {
+        let (temp_dir, dir_path) = temp_workspace();
 
-        let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None, env_vars)
-                .await
-                .unwrap();
-        });
+        let workspace = Workspace::new(dir_path).cmd("echo").ignore([".git"]);
+        let result = watch(workspace, DebouncerConfig::default()).await;
 
         write(temp_dir.path().join("test.txt"), "modified content").unwrap();
-
-        watch_task.abort();
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_watch_with_default_ignore() {
-        let temp_dir = tempdir().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+        let (_temp_dir, dir_path) = temp_workspace();
 
-        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
-
-        let cmd = CommandType::Single("echo".to_string());
-        // Pass None to use default ignore patterns
-        let ignore: Option<Vec<String>> = None;
-        let env_vars = HashMap::new();
-
-        let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None, env_vars)
-                .await
-                .unwrap();
-        });
-
-        watch_task.abort();
+        let workspace = Workspace::new(dir_path).cmd("echo");
+        assert!(watch(workspace, DebouncerConfig::default()).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_watch_with_multiple_commands() {
-        let temp_dir = tempdir().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+        let (_temp_dir, dir_path) = temp_workspace();
 
-        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
-
-        let cmd = CommandType::Multiple(vec!["echo first".to_string(), "echo second".to_string()]);
-        let ignore = Some(vec![".git".to_string()]);
-        let env_vars = HashMap::new();
-
-        let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None, env_vars)
-                .await
-                .unwrap();
-        });
-
-        watch_task.abort();
+        let workspace = Workspace::new(dir_path).cmds(["echo first", "echo second"]);
+        assert!(watch(workspace, DebouncerConfig::default()).await.is_ok());
     }
 
     #[tokio::test]
-    async fn test_watch_with_bin_path() {
-        let temp_dir = tempdir().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+    async fn test_watch_with_bin_path_and_args() {
+        let (_temp_dir, dir_path) = temp_workspace();
 
-        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
+        let workspace = Workspace::new(dir_path)
+            .cmd("echo build")
+            .bin_path("/tmp/test_binary")
+            .bin_arg(["--port", "8080"]);
 
-        let cmd = CommandType::Single("echo build".to_string());
-        let ignore = Some(vec![".git".to_string()]);
-        let bin_path = Some("/tmp/test_binary".to_string());
-        let env_vars = HashMap::new();
-
-        let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, bin_path, None, env_vars)
-                .await
-                .unwrap();
-        });
-
-        watch_task.abort();
-    }
-
-    #[tokio::test]
-    async fn test_watch_with_bin_args() {
-        let temp_dir = tempdir().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
-
-        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
-
-        let cmd = CommandType::Single("echo build".to_string());
-        let ignore = Some(vec![".git".to_string()]);
-        let bin_path = Some("/tmp/test_binary".to_string());
-        let bin_arg = Some(vec!["--port".to_string(), "8080".to_string()]);
-        let env_vars = HashMap::new();
-
-        let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, bin_path, bin_arg, env_vars)
-                .await
-                .unwrap();
-        });
-
-        watch_task.abort();
+        assert!(watch(workspace, DebouncerConfig::default()).await.is_ok());
     }
 
     #[tokio::test]
     async fn test_watch_with_multiple_ignore_patterns() {
-        let temp_dir = tempdir().unwrap();
-        let dir_path = temp_dir.path().to_str().unwrap().to_string();
+        let (_temp_dir, dir_path) = temp_workspace();
 
-        write(temp_dir.path().join("test.txt"), "initial content").unwrap();
-
-        let cmd = CommandType::Single("echo".to_string());
-        let ignore = Some(vec![
-            ".git".to_string(),
-            "node_modules".to_string(),
-            "target".to_string(),
-            "*.log".to_string(),
+        let workspace = Workspace::new(dir_path).cmd("echo").ignore([
+            ".git",
+            "node_modules",
+            "target",
+            "*.log",
         ]);
-        let env_vars = HashMap::new();
 
-        let watch_task = tokio::spawn(async move {
-            watcher(dir_path, cmd, ignore, None, None, env_vars)
-                .await
-                .unwrap();
-        });
+        assert!(watch(workspace, DebouncerConfig::default()).await.is_ok());
+    }
 
-        watch_task.abort();
+    #[tokio::test]
+    async fn test_watch_rejects_invalid_ignore_pattern() {
+        let (_temp_dir, dir_path) = temp_workspace();
+
+        let workspace = Workspace::new(dir_path).cmd("echo").ignore(["src/**/["]);
+        let err = watch(workspace, DebouncerConfig::default())
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, Error::Ignore { .. }));
+    }
+
+    #[tokio::test]
+    async fn test_watch_reports_missing_directory() {
+        let workspace = Workspace::new("/nonexistent/rustywatch/dir").cmd("echo");
+        let err = watch(workspace, DebouncerConfig::default())
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, Error::Watch(_)));
     }
 }
