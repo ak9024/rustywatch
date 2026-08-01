@@ -9,12 +9,7 @@ use crate::{
 };
 use log::{error, info, warn};
 use notify::{event::ModifyKind, recommended_watcher, Event, EventKind, RecursiveMode, Watcher};
-use std::{
-    collections::HashMap,
-    process::{self, exit},
-    result::Result,
-    sync::mpsc::channel,
-};
+use std::{collections::HashMap, process::exit, result::Result, sync::mpsc::channel};
 use tokio::sync::mpsc as tokio_mpsc;
 
 pub async fn watcher(
@@ -74,10 +69,13 @@ pub async fn watcher(
         Ok(_) => {
             info!("Watching directory: {:?}", dir);
 
-            // In testing env, skip the loop to prevent blocking
+            // In testing env, skip the blocking event loop and return
+            // cleanly. Using `process::exit` here would terminate the entire
+            // test binary mid-run, silently skipping any tests that had not
+            // yet completed on other threads.
             if cfg!(test) {
                 warn!("Running in test environment");
-                process::exit(0)
+                return Ok(());
             }
 
             // Main event loop using tokio::select! for concurrent handling

@@ -46,16 +46,16 @@ impl CompiledFilter {
         // Generate both extension match and directory match
         if pattern.starts_with('.') && !pattern.contains('/') {
             return vec![
-                format!("**/*{}", pattern),   // Extension: matches files ending with pattern
-                format!("**/{}", pattern),    // Exact name match
+                format!("**/*{}", pattern), // Extension: matches files ending with pattern
+                format!("**/{}", pattern),  // Exact name match
                 format!("**/{}/**", pattern), // Directory: matches files inside
             ];
         }
 
         // Simple name - match exact name and as directory
         vec![
-            format!("**/{}", pattern),      // Matches the exact name
-            format!("**/{}/**", pattern),   // Matches files inside directory
+            format!("**/{}", pattern),    // Matches the exact name
+            format!("**/{}/**", pattern), // Matches files inside directory
         ]
     }
 

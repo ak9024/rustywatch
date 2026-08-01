@@ -75,7 +75,10 @@ mod tests {
         let result = restart(file_path.to_str().unwrap(), None, &env_vars, ".");
         assert!(result.is_ok());
 
-        let child = result.unwrap();
+        let mut child = result.unwrap();
         assert!(child.id() > 0);
+
+        // Reap the child so it doesn't linger as a zombie process.
+        let _ = child.wait();
     }
 }

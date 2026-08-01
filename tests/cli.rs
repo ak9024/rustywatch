@@ -1,5 +1,4 @@
 use std::process::Command;
-use std::{thread, time::Duration};
 
 #[test]
 fn test_run_cli_in_thread() {
@@ -8,18 +7,20 @@ fn test_run_cli_in_thread() {
         "-V", // version
     ];
 
+    // Run each invocation to completion and assert it exits successfully,
+    // reaping the child process instead of leaving it as a zombie.
     for arg in args {
-        thread::spawn(move || {
-            Command::new("cargo")
-                .arg("run")
-                .arg("--")
-                .arg(arg)
-                .spawn()
-                .expect("Failed to start the CLI");
-        });
+        let output = Command::new("cargo")
+            .arg("run")
+            .arg("--")
+            .arg(arg)
+            .output()
+            .expect("Failed to start the CLI");
+
+        assert!(
+            output.status.success(),
+            "`{}` should exit successfully",
+            arg
+        );
     }
-
-    thread::sleep(Duration::from_secs(1));
-
-    assert!(true)
 }

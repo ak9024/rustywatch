@@ -1,29 +1,55 @@
 use serde::{Deserialize, Serialize};
 
+/// A single project directory that RustyWatch watches and reloads.
+///
+/// Each workspace runs independently and concurrently with the others defined
+/// in a [`Config`]. Commands execute with the workspace [`dir`](Self::dir) as
+/// their working directory.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Workspace {
+    /// Directory to watch for changes; also the working directory for commands.
     pub dir: String,
+    /// Command(s) to run when a watched file changes. Accepts either a single
+    /// string or a list of strings in YAML (see [`CommandType`]).
     #[serde(deserialize_with = "deserialize_cmd")]
     pub cmd: CommandType,
+    /// Glob/name patterns to ignore. When omitted, sensible defaults are used.
     pub ignore: Option<Vec<String>>,
+    /// Path to a compiled binary to (re)start after the command succeeds,
+    /// relative to [`dir`](Self::dir) unless absolute.
     pub bin_path: Option<String>,
+    /// Arguments passed to the binary at [`bin_path`](Self::bin_path).
     pub bin_arg: Option<Vec<String>>,
+    /// Optional `.env` file whose variables are injected into the command
+    /// environment. Relative to [`dir`](Self::dir) unless it starts with `/`.
     pub env_file: Option<String>,
 }
 
+/// One or many shell commands.
+///
+/// Deserializes transparently from either a YAML scalar (`cmd: "cargo build"`)
+/// or a sequence (`cmd: ["npm install", "npm start"]`).
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
 pub enum CommandType {
+    /// A single command string.
     Single(String),
+    /// Multiple commands executed in parallel.
     Multiple(Vec<String>),
 }
 
+/// Top-level configuration parsed from `rustywatch.yaml`.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
+    /// The set of workspaces to watch. Must contain at least one entry.
     pub workspaces: Vec<Workspace>,
 }
 
 impl Config {
+    /// Validates the configuration.
+    ///
+    /// Returns an `Err` with a human-readable message if no workspaces are
+    /// defined.
     pub fn validate(&self) -> Result<(), String> {
         if self.workspaces.is_empty() {
             return Err("workspaces must be set!".into());
@@ -126,7 +152,11 @@ mod tests {
         let workspace = Workspace {
             dir: ".".to_string(),
             cmd: CommandType::Single("test".to_string()),
-            ignore: Some(vec![".git".to_string(), "node_modules".to_string(), "target".to_string()]),
+            ignore: Some(vec![
+                ".git".to_string(),
+                "node_modules".to_string(),
+                "target".to_string(),
+            ]),
             bin_path: None,
             bin_arg: None,
             env_file: None,

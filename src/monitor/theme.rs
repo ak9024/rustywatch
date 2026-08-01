@@ -44,11 +44,11 @@ impl Default for Theme {
             info: Color::Rgb(97, 175, 239),     // Blue
 
             // UI elements
-            border: Color::Rgb(92, 99, 112),        // Muted gray
+            border: Color::Rgb(92, 99, 112),          // Muted gray
             border_focused: Color::Rgb(97, 175, 239), // Blue when focused
-            header_bg: Color::Rgb(40, 44, 52),      // Dark gray
-            header_fg: Color::Rgb(171, 178, 191),   // Light gray
-            selected_bg: Color::Rgb(62, 68, 81),    // Slightly lighter dark
+            header_bg: Color::Rgb(40, 44, 52),        // Dark gray
+            header_fg: Color::Rgb(171, 178, 191),     // Light gray
+            selected_bg: Color::Rgb(62, 68, 81),      // Slightly lighter dark
             selected_fg: Color::White,
             muted: Color::Rgb(92, 99, 112), // Gray for less important text
         }

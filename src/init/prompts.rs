@@ -93,7 +93,8 @@ fn collect_workspaces() -> Result<Vec<Workspace>, Box<dyn Error>> {
         } else {
             Some(workspace_dir.as_path())
         };
-        let workspace = prompt_workspace_config(&template, project_name.as_deref(), workspace_dir_opt)?;
+        let workspace =
+            prompt_workspace_config(&template, project_name.as_deref(), workspace_dir_opt)?;
         workspaces.push(workspace);
 
         // Ask if user wants to add another workspace
@@ -117,7 +118,10 @@ fn select_project_type(
     let default_idx = detected.map(|t| t as usize).unwrap_or(5);
 
     let prompt_msg = match detected {
-        Some(t) => format!("Detected {} project. Select project type:", t.display_name()),
+        Some(t) => format!(
+            "Detected {} project. Select project type:",
+            t.display_name()
+        ),
         None => "Select project type:".to_string(),
     };
 

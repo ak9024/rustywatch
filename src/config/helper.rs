@@ -1,6 +1,12 @@
 use crate::config::schema::Config;
 use std::{error::Error, fs};
 
+/// Reads and deserializes a YAML configuration file at `path` into a [`Config`].
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read or if its contents are not valid
+/// RustyWatch YAML.
 pub fn read(path: String) -> Result<Config, Box<dyn Error>> {
     let config_content = fs::read_to_string(&path)?;
     let config: Config = serde_yaml::from_str(&config_content)?;
