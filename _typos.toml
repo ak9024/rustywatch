@@ -1,0 +1,5 @@
+# Configuration for crate-ci/typos (run by the `typos` CI job).
+
+[default.extend-words]
+# The TUI crate. Without this, `typos` insists it should be "ratatouille".
+ratatui = "ratatui"
