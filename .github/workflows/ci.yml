@@ -235,26 +235,6 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # commit-format:
-  #   name: Commit format
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout the repository
-  #       if: github.event_name != 'pull_request'
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Checkout the repository
-  #       if: github.event_name == 'pull_request'
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: ${{ github.event.pull_request.head.sha }}
-  #
-  #     - name: Run committed
-  #       uses: crate-ci/committed@master
-  #       with:
-  #         args: "-vv"
-  #         commits: "HEAD"
-  
   code-format:
     name: Code format
     runs-on: ubuntu-latest
@@ -297,18 +277,6 @@ jobs:
       # `--all-targets` also lints tests and benches, not just the library.
       - name: Check lints
         run: cargo clippy --locked --all-targets -- -D warnings
-
-  # deny:
-  #   name: Deny
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout the repository
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Run cargo-deny
-  #       uses: EmbarkStudios/cargo-deny-action@v2
-  #       with:
-  #         command: check all
 
   links:
     name: Links
