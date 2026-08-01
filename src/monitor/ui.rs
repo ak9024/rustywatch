@@ -202,6 +202,28 @@ fn draw_header_with_stats(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
     f.render_widget(header, area);
 }
 
+/// Converts a 0-100 percentage into the 0.0-1.0 ratio `LineGauge` demands.
+///
+/// `LineGauge::ratio` panics outside that range, so `NaN` (from a zero total)
+/// and out-of-range readings are normalized here rather than taking the whole
+/// TUI down while the terminal is in raw mode.
+fn gauge_ratio(percentage: f64) -> f64 {
+    if percentage.is_nan() {
+        0.0
+    } else {
+        (percentage / 100.0).clamp(0.0, 1.0)
+    }
+}
+
+/// Percentage of `total` used by `used`, or `0.0` when `total` is unknown.
+fn used_percentage(used: f64, total: f64) -> f64 {
+    if total <= 0.0 {
+        0.0
+    } else {
+        (used / total) * 100.0
+    }
+}
+
 fn draw_cpu_gauge(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
     let cpu_usage = app.system.global_cpu_info().cpu_usage();
     let color = theme.status_color(cpu_usage, 50.0, 80.0);
@@ -216,7 +238,7 @@ fn draw_cpu_gauge(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
         )
         .gauge_style(Style::default().fg(color))
         .line_set(symbols::line::THICK)
-        .ratio((cpu_usage / 100.0) as f64)
+        .ratio(gauge_ratio(cpu_usage as f64))
         .label(format!("{:.1}%", cpu_usage));
 
     f.render_widget(gauge, area);
@@ -225,7 +247,7 @@ fn draw_cpu_gauge(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
 fn draw_memory_gauge(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
     let used = app.system.used_memory() as f64;
     let total = app.system.total_memory() as f64;
-    let percentage = (used / total) * 100.0;
+    let percentage = used_percentage(used, total);
     let color = theme.status_color(percentage as f32, 60.0, 85.0);
 
     let used_gb = used / 1024.0 / 1024.0 / 1024.0;
@@ -241,7 +263,7 @@ fn draw_memory_gauge(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
         )
         .gauge_style(Style::default().fg(color))
         .line_set(symbols::line::THICK)
-        .ratio(percentage / 100.0)
+        .ratio(gauge_ratio(percentage))
         .label(format!(
             "{:.1}GB / {:.1}GB ({:.0}%)",
             used_gb, total_gb, percentage
@@ -613,5 +635,194 @@ fn format_uptime(seconds: u64) -> String {
         format!("{}m{}s", minutes, secs)
     } else {
         format!("{}s", secs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::monitor::app::ProcessInfo;
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+
+    fn sample_app() -> App {
+        App::with_processes(vec![
+            ProcessInfo {
+                pid: 4242,
+                name: "rustywatch-api".to_string(),
+                cpu_usage: 12.5,
+                memory_mb: 128,
+                status: "Run".to_string(),
+                run_time: 3671,
+            },
+            ProcessInfo {
+                pid: 4243,
+                name: "rustywatch-web".to_string(),
+                cpu_usage: 3.5,
+                memory_mb: 64,
+                status: "Sleep".to_string(),
+                run_time: 12,
+            },
+        ])
+    }
+
+    /// Renders `app` into an off-screen terminal and returns the flattened text.
+    fn render(app: &mut App, width: u16, height: u16) -> String {
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal.draw(|f| draw(f, app)).unwrap();
+
+        let buffer = terminal.backend().buffer().clone();
+        buffer
+            .content()
+            .iter()
+            .map(|cell| cell.symbol())
+            .collect::<Vec<_>>()
+            .join("")
+    }
+
+    #[test]
+    fn test_full_layout_renders_processes() {
+        let mut app = sample_app();
+        let out = render(&mut app, 140, 40);
+
+        assert!(out.contains("RustyWatch"));
+        assert!(out.contains("rustywatch-api"));
+        assert!(out.contains("4242"));
+        assert!(out.contains("NORMAL"), "footer shows the current mode");
+    }
+
+    #[test]
+    fn test_compact_layout_renders() {
+        let mut app = sample_app();
+        let out = render(&mut app, 100, 30);
+
+        assert!(out.contains("RustyWatch"));
+        assert!(out.contains("rustywatch-api"));
+    }
+
+    #[test]
+    fn test_minimal_layout_renders() {
+        let mut app = sample_app();
+        let out = render(&mut app, 60, 20);
+
+        assert!(out.contains("RustyWatch"));
+        assert!(out.contains("[q]uit"));
+    }
+
+    #[test]
+    fn test_empty_process_list_shows_placeholder() {
+        let mut app = App::with_processes(Vec::new());
+        let out = render(&mut app, 140, 40);
+
+        assert!(out.contains("RustyWatch"));
+    }
+
+    #[test]
+    fn test_search_bar_shows_query() {
+        let mut app = sample_app();
+        app.mode = AppMode::Search;
+        app.search_query = "api".to_string();
+
+        let out = render(&mut app, 140, 40);
+        assert!(out.contains("api"));
+        assert!(out.contains("SEARCH"));
+    }
+
+    // A non-empty query must keep the search bar visible after leaving search
+    // mode, otherwise the filter is applied invisibly.
+    #[test]
+    fn test_search_bar_visible_with_query_in_normal_mode() {
+        let mut app = sample_app();
+        app.search_query = "rustywatch".to_string();
+
+        let out = render(&mut app, 100, 30);
+        assert!(out.contains("rustywatch"));
+    }
+
+    #[test]
+    fn test_help_overlay_renders() {
+        let mut app = sample_app();
+        app.mode = AppMode::Help;
+
+        let out = render(&mut app, 140, 40);
+        assert!(out.contains("Keyboard Shortcuts"));
+        assert!(out.contains("NAVIGATION"));
+    }
+
+    #[test]
+    fn test_confirm_kill_dialog_names_the_pid() {
+        let mut app = sample_app();
+        app.mode = AppMode::Confirm(ConfirmAction::KillProcess(4242));
+
+        let out = render(&mut app, 140, 40);
+        assert!(out.contains("Confirm Kill"));
+        assert!(out.contains("4242"));
+    }
+
+    #[test]
+    fn test_confirm_restart_dialog_renders() {
+        let mut app = sample_app();
+        app.mode = AppMode::Confirm(ConfirmAction::RestartService(4243));
+
+        let out = render(&mut app, 140, 40);
+        assert!(out.contains("Confirm Restart"));
+    }
+
+    // Every layout branch must survive a terminal too small to hold it.
+    #[test]
+    fn test_tiny_terminal_does_not_panic() {
+        for (w, h) in [(20, 5), (40, 10), (80, 12), (120, 30)] {
+            let mut app = sample_app();
+            app.mode = AppMode::Help;
+            render(&mut app, w, h);
+        }
+    }
+
+    // `LineGauge::ratio` panics outside 0.0..=1.0, and an unreadable memory
+    // total yields NaN — that combination used to take down the whole TUI.
+    #[test]
+    fn test_gauge_ratio_normalizes_out_of_range_and_nan() {
+        assert_eq!(gauge_ratio(f64::NAN), 0.0);
+        assert_eq!(gauge_ratio(-10.0), 0.0);
+        assert_eq!(gauge_ratio(0.0), 0.0);
+        assert_eq!(gauge_ratio(50.0), 0.5);
+        assert_eq!(gauge_ratio(100.0), 1.0);
+        assert_eq!(gauge_ratio(400.0), 1.0);
+        assert_eq!(gauge_ratio(f64::INFINITY), 1.0);
+    }
+
+    #[test]
+    fn test_used_percentage_guards_zero_total() {
+        assert_eq!(used_percentage(100.0, 0.0), 0.0);
+        assert_eq!(used_percentage(0.0, 0.0), 0.0);
+        assert_eq!(used_percentage(25.0, 100.0), 25.0);
+    }
+
+    #[test]
+    fn test_format_uptime() {
+        assert_eq!(format_uptime(0), "0s");
+        assert_eq!(format_uptime(45), "45s");
+        assert_eq!(format_uptime(60), "1m0s");
+        assert_eq!(format_uptime(125), "2m5s");
+        assert_eq!(format_uptime(3600), "1h0m");
+        assert_eq!(format_uptime(3671), "1h1m");
+        assert_eq!(format_uptime(90_061), "25h1m");
+    }
+
+    #[test]
+    fn test_centered_rect_is_centered_and_scaled() {
+        let area = Rect::new(0, 0, 100, 100);
+        let centered = centered_rect(50, 20, area);
+
+        assert_eq!(centered.width, 50);
+        assert_eq!(centered.height, 20);
+        assert_eq!(centered.x, 25);
+        assert_eq!(centered.y, 40);
+    }
+
+    #[test]
+    fn test_centered_rect_full_size() {
+        let area = Rect::new(0, 0, 80, 24);
+        assert_eq!(centered_rect(100, 100, area), area);
     }
 }
