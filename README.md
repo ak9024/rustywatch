@@ -132,10 +132,21 @@ rustywatch init [OPTIONS]
 | Option | Description |
 |--------|-------------|
 | `-o, --output <FILE>` | Config file path (default: rustywatch.yaml) |
-| `--yes` | Skip prompts, use auto-detected defaults |
+| `-d, --dir <DIR>` | Root directory to scan (default: `.`) |
+| `--depth <N>` | How deep to scan for nested projects (default: 2, 0 = root only) |
+| `--yes` | Skip prompts, accept every detected project as-is |
 | `-f, --force` | Overwrite existing config file |
+| `--dry-run` | Print the configuration instead of writing it |
 
-Auto-detects project type: Rust, Go, Node.js, Python, Bun.
+`init` scans subdirectories, so a monorepo is configured in one run — every
+detected project becomes a workspace, complete with its build command, binary
+path, ignore patterns and `.env` file. Auto-detects Rust, Go, Node.js, Bun and
+Python, reading `package.json` scripts and Python entry points so the generated
+command points at something that exists.
+
+```shell
+rustywatch init --yes --dry-run    # preview without writing
+```
 
 ### Process Monitor
 
@@ -146,6 +157,48 @@ rustywatch --monitor
 ```
 
 Features: CPU/memory tracking, process management, system metrics.
+
+## Use as a Rust library
+
+RustyWatch is a crate as well as a binary — the same watch/reload engine is
+available from code.
+
+```shell
+cargo add rustywatch
+```
+
+```rust
+use rustywatch::{Watcher, Workspace};
+
+#[tokio::main]
+async fn main() -> rustywatch::Result<()> {
+    Watcher::builder()
+        .workspace(
+            Workspace::new("./api")
+                .cmd("cargo build")
+                .bin_path("target/debug/api")
+                .bin_arg(["--port", "8080"])
+                .env_file(".env"),
+        )
+        .workspace(Workspace::new("./web").cmd("npm run dev"))
+        .build()?
+        .run()
+        .await
+}
+```
+
+Already have a `rustywatch.yaml`? Reuse it:
+
+```rust
+rustywatch::Watcher::from_config_file("rustywatch.yaml")?.run().await
+```
+
+`run()` drives every workspace concurrently and returns the first failure as a
+typed `rustywatch::Error` — nothing in the crate calls `process::exit`, so it is
+safe to embed in a larger application.
+
+Full API reference: <https://rustywatch.vercel.app/reference/library-api/> and
+<https://docs.rs/rustywatch>.
 
 ## Help
 
@@ -177,6 +230,14 @@ cargo test --lib
 
 ```shell
 cargo test --test '*'
+```
+
+### Run doc tests only
+
+> `cargo test --all-targets` skips these, so CI runs them as a separate step.
+
+```shell
+cargo test --doc
 ```
 
 ### Run with code coverage
