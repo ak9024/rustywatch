@@ -17,19 +17,28 @@ Inspired by [Go Air](https://github.com/air-verse/air), RustyWatch provides powe
 
 - **Universal Live Reloading:** Supports live reloading for any programming language (Go, Rust, Node.js, Python, and more).
 - **Real-time Binary Reloading:** Automatically rebuilds and restarts your binaries on file changes.
-- **Monorepo & Multi-Project Support:** Run multiple projects concurrently with a single command.
+- **Monorepo & Multi-Project Support:** Run multiple projects concurrently with a single command, and scaffold them all in one `rustywatch init`.
 - **Automatic Working Directory:** Commands execute in the workspace `dir` automatically - no `cd` prefix needed.
 - **Process Monitoring Dashboard:** Built-in terminal UI (`--monitor`) with real-time CPU/memory tracking, process management, and system metrics.
-- **Smart File Filtering:** Intelligent ignore patterns with glob matching for common build artifacts (.git, node_modules, target/, etc.).
-- **Async & High Performance:** Non-blocking async I/O with Tokio, event debouncing, and efficient data structures.
+- **Smart File Filtering:** Glob-based ignore patterns for common build artifacts (`.git`, `node_modules`, `target/`, etc.), compiled and validated up front.
+- **Async & High Performance:** Non-blocking async I/O with Tokio, tunable event debouncing, and coalesced reloads.
+- **Usable as a Library:** The same watch/reload engine ships as a crate with a typed `Watcher`/`WatcherBuilder` API — no `process::exit`, every failure is a typed `Error`.
 - **Cross-Platform:** Works on macOS, Linux, and Windows.
 - **Flexible Configuration:** YAML-based config or CLI arguments for quick usage.
 
 ## Install
 
+Requires Rust **1.85.0** or newer (MSRV, enforced in CI).
+
 ### Using Cargo
 
 > curl --proto '=https' --tlsv1.2 -sSf <https://sh.rustup.rs> | sh
+
+```shell
+cargo install rustywatch
+```
+
+Or straight from git:
 
 ```shell
 cargo install --git https://github.com/ak9024/rustywatch rustywatch
@@ -89,8 +98,33 @@ workspaces:
   # third project non binary apps
   - dir: 'nodejs-project'
     cmd: 'npm run dev' # runs in nodejs-project/
+  # cmd also accepts a list — note: the entries run in PARALLEL, not in sequence
+  - dir: 'python-project'
+    cmd:
+     - 'python -m mypkg'
+     - 'python -m mypkg.worker'
   # more ...
 ```
+
+### Things that surprise people
+
+- **`ignore` replaces the defaults, it does not extend them.** Setting
+  `ignore: ['.git']` drops `target/`, `node_modules/` and the rest of
+  `DEFAULT_IGNORE_PATTERNS`. List everything you need, or use
+  `Workspace::extend_ignore` from the library.
+- **A `cmd` list runs in parallel.** It reads like ordered steps but isn't —
+  chain with `&&` inside a single command when order matters.
+- **No `cd` prefix.** Every command and binary spawn already runs with the
+  workspace `dir` as its working directory.
+- **Relative `bin_path` resolves against the workspace `dir`**, not the process
+  CWD. Absolute paths are used as-is.
+- **`env_file` with a leading `/` means "relative to the project root"** — the
+  slash is stripped, it is not a filesystem-absolute path. Anything else is
+  relative to the workspace `dir`.
+- **Only data-modification events trigger a reload.** Creating, deleting or
+  renaming a file does not.
+- **The config file wins over CLI flags.** If `rustywatch.yaml` (or whatever
+  `--cfg` points at) exists, the watch flags are ignored.
 
 ```shell
 # list directories
@@ -120,6 +154,25 @@ rustywatch
 ```
 
 ## Commands
+
+### Watch Options
+
+Used when no `rustywatch.yaml` is present — a single workspace straight from
+flags. `--cmd` is required in this mode.
+
+```shell
+rustywatch [OPTIONS]
+```
+
+| Option | Description |
+|--------|-------------|
+| `-d, --dir <DIR>` | Directory to watch (default: `.`) |
+| `-c, --cmd <CMD>` | Command to run on change (repeatable; entries run in parallel) |
+| `-i, --ignore <PATTERN>` | Ignore pattern (repeatable; **replaces** the defaults) |
+| `--bin_path <PATH>` | Binary to restart, relative to `--dir` |
+| `--bin_arg <ARG>` | Argument passed to the binary (repeatable) |
+| `--cfg <FILE>` | Config file path (default: `rustywatch.yaml`) |
+| `--monitor` | Show the process monitoring dashboard instead of watching |
 
 ### Init Command
 
@@ -156,7 +209,20 @@ Launch with the built-in TUI dashboard for real-time monitoring:
 rustywatch --monitor
 ```
 
-Features: CPU/memory tracking, process management, system metrics.
+It reads `rustywatch.yaml` and matches running processes against each
+workspace's commands and `bin_path`, so you see only the processes RustyWatch
+cares about, alongside system metrics.
+
+| Key | Action |
+|-----|--------|
+| `q` | Quit |
+| `j` / `k` | Navigate |
+| `1`–`5` | Sort by column |
+| `s` / `S` | Cycle / reverse sort |
+| `/` | Search |
+| `x` | Kill process |
+| `R` | Restart process |
+| `?` | Help |
 
 ## Use as a Rust library
 
@@ -195,7 +261,33 @@ rustywatch::Watcher::from_config_file("rustywatch.yaml")?.run().await
 
 `run()` drives every workspace concurrently and returns the first failure as a
 typed `rustywatch::Error` — nothing in the crate calls `process::exit`, so it is
-safe to embed in a larger application.
+safe to embed in a larger application. `builder()`, `from_config()` and
+`from_config_file()` all validate up front (non-empty workspaces, non-blank
+`dir`, non-empty `cmd`, ignore patterns compile as globs), so a bad config fails
+at `build()` rather than mid-run.
+
+Keeping the default ignore patterns while adding your own:
+
+```rust
+Workspace::new("./api").cmd("cargo build").extend_ignore(["*.snap"])
+```
+
+Events are debounced 300ms (2s hard cap under a continuous stream of writes).
+Both are tunable:
+
+```rust
+use std::time::Duration;
+
+let watcher = rustywatch::Watcher::builder()
+    .workspace(rustywatch::Workspace::new(".").cmd("cargo test"))
+    .debounce_delay(Duration::from_millis(50))
+    .max_debounce_delay(Duration::from_millis(500))
+    .build()?;
+```
+
+Supported surface: `Watcher`, `WatcherBuilder`, `Workspace`, `Config`,
+`CommandType`, `DebouncerConfig`, `Error`, `Result`, `DEFAULT_IGNORE_PATTERNS`,
+`default_ignore_patterns`.
 
 Full API reference: <https://rustywatch.vercel.app/reference/library-api/> and
 <https://docs.rs/rustywatch>.
@@ -209,7 +301,7 @@ rustywatch --help
 ## Update version
 
 ```shell
-cargo install rustywatch
+cargo install rustywatch --force
 ```
 
 ## Testing
@@ -256,11 +348,16 @@ cargo bench
 
 ## Support languages
 
-- Go
-- Rust
-- Bun
-- Node.js
-- (more)
+Any language — the watcher only runs commands. These are the ones `rustywatch
+init` auto-detects and scaffolds:
+
+| Language | Marker file |
+|----------|-------------|
+| Rust | `Cargo.toml` |
+| Go | `go.mod` |
+| Bun | `bun.lockb` |
+| Node.js | `package.json` |
+| Python | `pyproject.toml`, `setup.py`, `requirements.txt` |
 
 ## Star History
 
